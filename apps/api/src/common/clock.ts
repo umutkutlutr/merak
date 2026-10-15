@@ -6,15 +6,15 @@ import { Injectable } from '@nestjs/common';
  */
 @Injectable()
 export class ClockService {
-  private offsetMs = 0;
+  private frozenAt: number | null = null;
   now(): number {
-    return Date.now() + this.offsetMs;
+    return this.frozenAt ?? Date.now();
   }
   nowDate(): Date {
     return new Date(this.now());
   }
-  /** Test-only: shift the process clock (used by boundary tests). */
-  __setOffsetForTests(offsetMs: number): void {
-    this.offsetMs = offsetMs;
+  /** Test-only: freeze the process clock at an exact instant (null = wall clock). */
+  __freezeForTests(atMs: number | null): void {
+    this.frozenAt = atMs;
   }
 }

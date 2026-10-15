@@ -28,7 +28,7 @@ export interface SeedSummary {
   questions: { created: number; existing: number };
 }
 
-export async function runSeed(opts: { quiet?: boolean } = {}): Promise<SeedSummary> {
+export async function runSeed(opts: { quiet?: boolean; skipUsers?: boolean } = {}): Promise<SeedSummary> {
   const env = getEnv();
   if (env.NODE_ENV === 'production') throw new Error('Seed refuses to run in production');
   const password = env.SEED_PASSWORD ?? 'Merak-Local-123';
@@ -44,16 +44,17 @@ export async function runSeed(opts: { quiet?: boolean } = {}): Promise<SeedSumma
     const audit = app.get(AuditService);
 
     // ---- users (Supabase Auth admin API) + roles ----
-    const gotrue = await GoTrueAdmin.create(env.SUPABASE_AUTH_URL, {
+    const gotrue = opts.skipUsers ? null : await GoTrueAdmin.create(env.SUPABASE_AUTH_URL, {
       serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY || undefined,
       jwtSecret: env.SUPABASE_JWT_SECRET,
       issuer: env.AUTH_JWT_ISSUER,
       audience: env.AUTH_JWT_AUDIENCE,
     });
     const users = { created: 0, existing: 0 };
-    for (const u of SEED_USERS) {
-      const r = await gotrue.ensureUser(u.email, password);
-      r.created ? users.created++ : users.existing++;
+    for (const u of opts.skipUsers ? [] : SEED_USERS) {
+      const r = await gotrue!.ensureUser(u.email, password);
+      if (r.created) users.created++;
+      else users.existing++;
       await db
         .insert(profiles)
         .values({ id: r.id, username: u.username, displayName: u.displayName, role: u.role })

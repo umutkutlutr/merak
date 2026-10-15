@@ -43,8 +43,18 @@ export class AppError extends HttpException {
   }
 }
 
+/** Finds the underlying PostgreSQL error (drizzle wraps driver errors in DrizzleQueryError.cause). */
+export function pgError(err: unknown): { code?: string; constraint?: string } | null {
+  let cur = err as { code?: string; constraint?: string; cause?: unknown } | undefined;
+  for (let depth = 0; cur && depth < 5; depth++) {
+    if (typeof cur.code === 'string' && /^[0-9A-Z]{5}$/.test(cur.code)) return cur;
+    cur = cur.cause as typeof cur;
+  }
+  return null;
+}
+
 export function isPgUniqueViolation(err: unknown, constraint?: string): boolean {
-  const e = err as { code?: string; constraint?: string } | undefined;
+  const e = pgError(err);
   if (!e || e.code !== '23505') return false;
   return constraint ? e.constraint === constraint : true;
 }

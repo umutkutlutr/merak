@@ -1,4 +1,4 @@
-import { baseConfigs, baseIgnores } from '../../packages/config/eslint.base.js';
+import { baseConfigs, baseIgnores } from '../../packages/config/eslint.base.mjs';
 
 export default [
   { ignores: baseIgnores },

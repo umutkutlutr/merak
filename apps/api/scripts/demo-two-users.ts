@@ -38,7 +38,7 @@ async function api<T>(token: string, method: string, path: string, body?: unknow
 }
 
 async function main() {
-  const [editor, admin, ayse, mehmet] = await Promise.all(['editor', 'admin', 'ayse', 'mehmet'].map((u) => login(`${u}@merak.local`)));
+  const [editor, admin, ayse, mehmet] = (await Promise.all(['editor', 'admin', 'ayse', 'mehmet'].map((u) => login(`${u}@merak.local`)))) as [string, string, string, string];
   for (const tok of [ayse, mehmet]) await api(tok, 'GET', '/me');
 
   // 1) Editorial gate: test-approve and publish five seed questions (recorded in the audit log).

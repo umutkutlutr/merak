@@ -21,7 +21,7 @@ export default defineConfig({
     hookTimeout: 120_000,
     projects: [
       {
-        plugins: [swcPlugin],
+        extends: true,
         test: {
           name: 'unit',
           include: ['src/**/*.spec.ts'],
@@ -29,7 +29,7 @@ export default defineConfig({
         },
       },
       {
-        plugins: [swcPlugin],
+        extends: true,
         test: {
           name: 'integration',
           include: ['test/**/*.test.ts'],
