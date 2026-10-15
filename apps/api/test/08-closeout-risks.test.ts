@@ -189,7 +189,11 @@ describe('R4 single scheduler authority', () => {
     const { session, users } = await liveSession(1);
     const [a] = users as [{ u: TestUser; token: string }];
     const leader = t.app.get(SchedulerLeaderService);
-    const holder = await adminQuery<{ pid: number }>(`select pid from pg_locks where locktype = 'advisory' and objid = ${SCHEDULER_LOCK_KEY} and granted`);
+    // Advisory locks are per database: only this test database's holder matters (another API on the same
+    // cluster, e.g. a demo server on the `merak` database, holds its own independent lock).
+    const holder = await adminQuery<{ pid: number }>(
+      `select pid from pg_locks where locktype = 'advisory' and objid = ${SCHEDULER_LOCK_KEY} and granted and database = (select oid from pg_database where datname = current_database())`,
+    );
     if ('error' in holder) throw new Error(holder.error);
     expect(holder.rows).toHaveLength(1);
     await adminQuery(`select pg_terminate_backend(${holder.rows[0]!.pid})`);
