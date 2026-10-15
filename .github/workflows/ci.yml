@@ -1,0 +1,42 @@
+# Lint / typecheck / critical tests / build. NOT yet executed remotely — do not treat as green until a run exists.
+name: ci
+on:
+  push:
+    branches: ['**']
+  pull_request:
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: merak
+        ports: ['54329:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      DATABASE_ADMIN_URL: postgres://postgres:postgres@127.0.0.1:54329/merak
+      DATABASE_URL: postgres://app_api:app_api_local_dev@127.0.0.1:54329/merak
+      SUPABASE_AUTH_URL: http://localhost:9999
+      SUPABASE_JWT_SECRET: ci-only-jwt-secret-0123456789-0123456789-0123456789
+      AUTH_JWT_ISSUER: http://localhost:9999
+      AUTH_JWT_AUDIENCE: authenticated
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10.28.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .node-version, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @merak/contracts build
+      - run: pnpm --filter @merak/api lint
+      - run: pnpm --filter @merak/api typecheck
+      - run: pnpm --filter @merak/admin typecheck
+      - run: pnpm --filter @merak/mobile typecheck
+      # Integration tests create roles + the merak_test database themselves (test/setup.ts). GoTrue is absent in CI: the real-login check self-skips.
+      - run: pnpm --filter @merak/api test
+      - run: pnpm --filter @merak/api build
+      - run: pnpm --filter @merak/admin build

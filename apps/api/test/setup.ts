@@ -4,6 +4,7 @@
  * owned by app_api, then applies the real SQL migrations as app_api — the same path as production.
  */
 import 'dotenv/config';
+import { beforeAll } from 'vitest';
 import { Client } from 'pg';
 import { loadEnv, setEnvForTests } from '../src/config/env.js';
 import { runMigrations } from '../src/db/migrate.js';
@@ -77,4 +78,6 @@ async function bootstrap(): Promise<void> {
   );
 }
 
-await bootstrap();
+beforeAll(async () => {
+  await bootstrap();
+});
