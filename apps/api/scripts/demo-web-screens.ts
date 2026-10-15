@@ -164,8 +164,9 @@ async function main() {
       await shot(a, '11-quiz-to-content');
       step('ayse opened the related card from the result screen');
     }
-    await a.getByText('Profil', { exact: true }).first().click().catch(() => undefined);
-    await a.getByTestId('profile-screen').waitFor({ timeout: 15_000 }).catch(() => undefined);
+    // The related card is a stack screen above the tabs (no tab bar): open the Profile tab by its route.
+    await a.goto(`${WEB}/profile`, { waitUntil: 'domcontentloaded' });
+    await a.getByTestId('profile-screen').waitFor({ timeout: 15_000 }); // fail loudly: no silent fallback screenshot
     await shot(a, '12-profile-ayse');
 
     // Admin
