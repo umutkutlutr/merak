@@ -104,6 +104,14 @@ describe('K03 editorial gate', () => {
     expect(after.body.status).toBe('cancelled');
     expect(after.body.cancelledReason).toBe('question_revision_changed');
     expect(after.body.questions[2].questionRevisionId).toBe(target.currentRevision.id); // still v1 pinned
+    // Participants see readable text; the question id is kept for staff in the audit metadata.
+    const audit = await adminQuery<{ reason: string; question_id: string }>(
+      `select reason, metadata->>'questionId' as question_id from app.admin_audit_log where action = 'session.auto_cancel' and target_id = '${session.id}'`,
+    );
+    if ('error' in audit) throw new Error(audit.error);
+    expect(audit.rows[0]!.reason).toBe('Bir sorunun onaylı metni değiştiği için oturum iptal edildi.');
+    expect(audit.rows[0]!.reason).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-/);
+    expect(audit.rows[0]!.question_id).toBe(target.id);
   });
   it('withdrawing approval (reject after approve) cancels the scheduled session with a visible reason', async () => {
     const fresh = await Promise.all(

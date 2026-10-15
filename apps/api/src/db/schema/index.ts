@@ -238,6 +238,12 @@ export const questions = app.table(
     reviewedBy: uuid('reviewed_by').references(() => profiles.id),
     reviewedAt: ts('reviewed_at'),
     reviewNote: text('review_note'),
+    /**
+     * Who vouched for approvedRevisionId: a person reviewing it ('editor_review') or a test/demo shortcut
+     * ('automated_test', which never counts as human review). Null exactly when nothing is approved (CHECK).
+     */
+    approvalKind: text('approval_kind', { enum: ['editor_review', 'automated_test'] }),
+    /** Working copy for listing/filtering; the values a session uses are pinned on question_revisions. */
     relatedContentItemId: uuid('related_content_item_id').references(() => contentItems.id),
     isSeedSample: boolean('is_seed_sample').notNull().default(false),
     createdBy: uuid('created_by').references(() => profiles.id),
@@ -262,6 +268,11 @@ export const questionRevisions = app.table(
     sourceVerified: boolean('source_verified').notNull().default(false),
     language: languageEnum('language').notNull().default('tr'),
     productionMethod: productionMethodEnum('production_method').notNull().default('human'),
+    /** Approved together with the text, so a later (unapproved) edit cannot change a pinned session's links. */
+    topicId: uuid('topic_id')
+      .notNull()
+      .references(() => topics.id),
+    relatedContentItemId: uuid('related_content_item_id').references(() => contentItems.id),
     createdBy: uuid('created_by').references(() => profiles.id),
     createdAt: createdAt(),
   },

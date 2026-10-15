@@ -1,3 +1,4 @@
+import { randomInt } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import { eq, sql } from 'drizzle-orm';
 import type { Profile, UpdateProfileInput, UserRole } from '@merak/contracts';
@@ -8,18 +9,13 @@ import { AppError, isPgUniqueViolation } from '../../common/errors.js';
 import { AnalyticsService } from '../analytics/analytics.service.js';
 import type { AuthUser } from '../identity/jwt-verifier.js';
 
-function usernameCandidate(email: string | null, attempt: number): string {
-  const local = (email ?? 'merak').split('@')[0] ?? 'merak';
-  let base = local
-    .toLowerCase()
-    .replace(/[^a-z0-9_]/g, '_')
-    .replace(/_+/g, '_')
-    .replace(/^_|_$/g, '')
-    .slice(0, 18);
-  if (base.length < 3) base = `merak_${base}`.slice(0, 18);
-  if (attempt === 0) return base;
-  const suffix = Math.floor(Math.random() * 9000 + 1000).toString();
-  return `${base.slice(0, 18)}_${suffix}`;
+/**
+ * Default public name for a new profile. Usernames appear on other players' leaderboards, so the default
+ * never derives from the e-mail address (KVKK: no personal data shown to others without a choice). The
+ * user picks a real name later with PATCH /me.
+ */
+function usernameCandidate(): string {
+  return `oyuncu_${randomInt(0, 36 ** 6).toString(36).padStart(6, '0')}`;
 }
 
 @Injectable()
@@ -51,7 +47,7 @@ export class ProfilesService {
     if (existing) return { profile: existing, created: false };
 
     for (let attempt = 0; attempt < 6; attempt++) {
-      const username = usernameCandidate(auth.email, attempt);
+      const username = usernameCandidate();
       try {
         const created = await this.db.transaction(async (tx) => {
           const inserted = await tx

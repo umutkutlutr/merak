@@ -24,6 +24,13 @@ export type Transition =
  * (SELECT ... FOR UPDATE) and re-checks the precondition inside the lock, so a repeated or
  * concurrent job can never open the same question twice or complete a session twice.
  */
+/** Participant-facing text for a pre-start cancellation; the question id stays in the audit metadata. */
+function revalidationCancelText(reason: 'question_approval_withdrawn' | 'question_revision_changed'): string {
+  return reason === 'question_revision_changed'
+    ? 'Bir sorunun onaylı metni değiştiği için oturum iptal edildi.'
+    : 'Bir sorunun onayı geri çekildiği için oturum iptal edildi.';
+}
+
 @Injectable()
 export class EngineService {
   constructor(
@@ -126,7 +133,7 @@ export class EngineService {
       const s = await this.lock(tx, sessionId);
       if (!s || s.status !== 'scheduled' || s.lobbyOpensAt.getTime() > now.getTime()) return null;
       const invalid = await this.revalidate(tx, sessionId);
-      if (invalid) return this.cancelInTx(tx, s, invalid.reason, `Soru ${invalid.questionId}`, now);
+      if (invalid) return this.cancelInTx(tx, s, invalid.reason, revalidationCancelText(invalid.reason), now, { questionId: invalid.questionId });
       const stateVersion = s.stateVersion + 1;
       await tx.update(quizSessions).set({ status: 'lobby', stateVersion, updatedAt: now }).where(eq(quizSessions.id, sessionId));
       return { kind: 'lobby', sessionId, stateVersion };
@@ -138,7 +145,7 @@ export class EngineService {
       const s = await this.lock(tx, sessionId);
       if (!s || s.status !== 'lobby' || s.scheduledStartAt.getTime() > now.getTime()) return null;
       const invalid = await this.revalidate(tx, sessionId);
-      if (invalid) return this.cancelInTx(tx, s, invalid.reason, `Soru ${invalid.questionId}`, now);
+      if (invalid) return this.cancelInTx(tx, s, invalid.reason, revalidationCancelText(invalid.reason), now, { questionId: invalid.questionId });
       const opened = await this.openQuestion(tx, s, 1, now);
       if (!opened) return this.cancelInTx(tx, s, 'question_approval_withdrawn', 'İlk soru açılamadı', now);
       const stateVersion = s.stateVersion + 1;
@@ -299,6 +306,7 @@ export class EngineService {
     reason: CancelReason,
     detail: string,
     now: Date,
+    metadata: Record<string, unknown> = {},
   ): Promise<Transition> {
     const stateVersion = s.stateVersion + 1;
     await tx
@@ -310,7 +318,7 @@ export class EngineService {
       .set({ status: 'closed', closedAt: now })
       .where(and(eq(sessionQuestions.sessionId, s.id), eq(sessionQuestions.status, 'open')));
     await this.audit.record(
-      { actorUserId: null, action: 'session.auto_cancel', targetType: 'quiz_session', targetId: s.id, reason: detail, metadata: { from: s.status, cancelReason: reason } },
+      { actorUserId: null, action: 'session.auto_cancel', targetType: 'quiz_session', targetId: s.id, reason: detail, metadata: { from: s.status, cancelReason: reason, ...metadata } },
       tx,
     );
     return { kind: 'cancelled', sessionId: s.id, stateVersion, reason, detail };

@@ -26,6 +26,13 @@ export type Env = z.infer<typeof EnvSchema> & { corsOrigins: string[] };
 
 let cached: Env | null = null;
 
+/** JWT secrets that are public (local stack defaults in this repo, CI, Supabase CLI docs); never valid in production. */
+const PUBLIC_DEV_JWT_SECRETS = new Set<string>([
+  'merak-local-dev-jwt-secret-do-not-use-in-prod-0123456789', // apps/api/.env.example, scripts/local-stack/env.sh
+  'ci-only-jwt-secret-0123456789-0123456789-0123456789', // .github/workflows/ci.yml
+  'super-secret-jwt-token-with-at-least-32-characters-long', // Supabase CLI local default (supabase start)
+]);
+
 export function loadEnv(overrides: Partial<Record<string, string>> = {}): Env {
   const parsed = EnvSchema.safeParse({ ...process.env, ...overrides });
   if (!parsed.success) {
@@ -38,6 +45,10 @@ export function loadEnv(overrides: Partial<Record<string, string>> = {}): Env {
   }
   if (env.SUPABASE_JWT_SECRET && env.SUPABASE_JWT_SECRET.length < 32) {
     throw new Error('Invalid environment: SUPABASE_JWT_SECRET must be at least 32 characters');
+  }
+  if (env.NODE_ENV === 'production' && env.SUPABASE_JWT_SECRET && PUBLIC_DEV_JWT_SECRETS.has(env.SUPABASE_JWT_SECRET)) {
+    // These values are published in this repository or in Supabase's docs: anyone could mint an admin token.
+    throw new Error('Invalid environment: SUPABASE_JWT_SECRET is a public development default and is refused in production');
   }
   return {
     ...env,

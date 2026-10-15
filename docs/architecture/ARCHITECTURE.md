@@ -61,7 +61,7 @@ flowchart LR
 | learning_completions | learning | (user_id, content_item_id) unique → XP bir kez | (user_id, completed_at) | P1 |
 | learning_xp_events | learning | (user_id, reason, ref_id) unique; amount > 0; reason yalnızca `content_completed` | user_id | P1 |
 | daily_task_completions | learning | (user_id, task_key, local_date) unique | — | P1 |
-| questions | question-bank | `approved_revision_id` yeni revizyonda sıfırlanır | status, topic | P1 |
+| questions | question-bank | `approved_revision_id` yeni revizyonda sıfırlanır; `approval_kind` (`editor_review` / `automated_test`) yalnızca onay varken dolu (CHECK) | status, topic | P1 |
 | question_revisions | question-bank | (question_id, version) unique; satırlar değişmez | — | P0 (reveal sonrası) |
 | question_options | question-bank | (question_revision_id, position) unique | — | P0 (açıldıktan sonra) |
 | question_answer_keys | question-bank | PK question_revision_id | — | **P2** |
@@ -114,20 +114,25 @@ sequenceDiagram
 ### 4.3 Tek otorite ve tekrar güvenliği
 
 - `SchedulerLeaderService`: süreç ömrü boyunca ayrı bir bağlantıda `pg_try_advisory_lock(7283001)`. Kilit alınamazsa süreç “lider değil”: `/ready` `schedulerLeader:false` döner, uyarı loglanır, geçiş yapılmaz. Bağlantı düşerse kilit otomatik serbest kalır.
+- Her tick önce `verify()` ile kilidin hâlâ bu bağlantıda tutulduğunu `pg_locks` üzerinden doğrular (3 sn zaman aşımı; cevap vermeyen bağlantı yok edilir ve liderlik bırakılır). Doğrulanamazsa o tick hiçbir geçiş yapmaz.
+- Açılışta kilidi alan süreç `recoverAfterRestart` çalıştırır (lobi/canlı oturumlar `server_restart` ile iptal, kaçırılmış planlı başlangıçlar `missed_start`). Lider olmayan süreç 10 sn’de bir `takeOver()` dener: daha önce hiç lider olmamış bir süreç kilidi alırsa önceki liderin yarıda kalan oturumlarını aynı kuralla iptal eder (sıralamaya sokmaz); kendi kilit bağlantısı kopup geri gelen önceki lider ise kalıcı durumdan devam eder. Sağlıklı lider kilidi tutarken açılan ikinci süreç hiçbir oturumu iptal etmez veya ilerletmez (test: `08-closeout-risks` R4).
 - Her geçiş `SELECT … FOR UPDATE` ile oturum satırını kilitler ve ön koşulu kilit içinde yeniden kontrol eder (`WHERE status='pending'` vb.). Tekrarlanan iş 0 satır etkiler → no-op (K10 testi: paralel tick’lerden yalnızca biri uygular).
 - Broadcast, commit’ten **sonra** yapılır; kaçan olaylar istemcinin bekçi köpeği (watchdog) ile `state.resync` isteğiyle telafi edilir.
 
 ### 4.4 Cevap kabulü (`AnswersService.submit`)
 
-1. `receivedAt` = istek girişinde middleware ile alınan süreç saati (kuyruk/işlem süresi dahil değil).
-2. Katılımcı satırı `FOR UPDATE` (aynı katılımcının eşzamanlı istekleri seri).
-3. Katılım token’ı hash eşleşmesi (ikinci cihaz/kimlik taklidi engeli).
-4. Aynı `idempotencyKey` → aynı payload ise aynı makbuz (`replayed:true`), farklı payload ise `IDEMPOTENCY_KEY_CONFLICT`.
+1. `receivedAt` = gövde tamamen alındıktan sonra middleware’in damgaladığı süreç saati (yavaş gövdeyle kapanıştan sonra seçim yapılamaz; kuyruk/işlem süresi dahil değil).
+2. Oturum satırı `FOR KEY SHARE`: cevap transaction’ı geçişlerle (`FOR UPDATE`) seri çalışır; tamamlanmış/iptal edilmiş oturuma makbuz yazılmaz.
+3. Katılımcı satırı `FOR UPDATE` (aynı katılımcının eşzamanlı istekleri seri) ve katılım token’ı hash eşleşmesi.
+4. Aynı `idempotencyKey` → aynı payload ise aynı makbuz (`replayed:true`, oturum bittikten sonra da), farklı payload ise `IDEMPOTENCY_KEY_CONFLICT`.
 5. Başka anahtarla ikinci cevap → `ANSWER_ALREADY_ACCEPTED`.
-6. Pencere: `opensAt <= receivedAt < closesAt` (durum değil, zaman damgaları esas; zamanlayıcı gecikse bile `closesAt`’ten sonra ret).
-7. Geç katılım uygunluğu; seçeneğin sabitlenmiş revizyona aitliği.
-8. Puan sunucuda hesaplanır ve makbuzla **aynı transaction’da** yazılır; istemciye reveal’e kadar dönmez.
-9. Tekil kısıt yarışı kaybedilirse (23505) aynı mantık tekrar koşar → aynı makbuz.
+6. Oturum durumu: `cancelled` → `SESSION_CANCELLED`, `completed` → `SESSION_COMPLETED`, `live` değilse `QUESTION_NOT_OPEN`.
+7. Pencere yalnızca zaman damgalarıyla: `opensAt <= receivedAt < closesAt`. Kapanıştan önce alınmış ama reveal’den sonra işlenen istek kabul edilir; kapanış anında ve sonrasında ret.
+8. Geç katılım uygunluğu; seçeneğin sabitlenmiş revizyona aitliği (başka sorunun seçeneği `OPTION_INVALID`, hak tüketmez).
+9. Puan sunucuda hesaplanır ve makbuzla **aynı transaction’da** yazılır; istemciye reveal’e kadar dönmez.
+10. DB tekil kısıtları son savunma hattıdır; 2–3. adımlardaki kilitler nedeniyle 23505 yeniden deneme yolu API üzerinden tetiklenemez ve testle kanıtlanmış değildir.
+
+Bilinçli sınır: son sorunun cevabı, oturum tamamlanmadan (kapanıştan `revealDurationMs` = 6 sn sonra) işlenmelidir. Daha geç işlenen istek, zamanında alınmış olsa bile `SESSION_COMPLETED` alır; sonuçlar tamamlanmada kesinleşir ve M0’da sonradan değişmez (sürümlü düzeltme M1).
 
 ### 4.5 Sızıntı sınırı
 
@@ -145,7 +150,7 @@ sequenceDiagram
 | Sınırlar | JSON gövde 32 KB; genel 600 istek/dk; cevap ucu 30 istek/10 sn (kullanıcı bazlı). |
 | İstemci iddiaları | `AnswerSubmitInput` bilinmeyen alanları atar; `clientSentAt/clientRttMs` yalnızca tanı için saklanır. |
 | API yeniden başlatma | Bootstrap’te lider ise: lobby/live oturumlar `server_restart` ile iptal, açık sorular kapatılır, makbuzlar korunur; 60 sn’den fazla kaçırılan planlı oturumlar `missed_start`. |
-| Onay geri çekilmesi / düzenleme | Lobi ve başlangıç öncesi sabitlenmiş revizyonlar yeniden doğrulanır; geçersizse oturum `question_approval_withdrawn` / `question_revision_changed` ile iptal. |
+| Onay geri çekilmesi / düzenleme | Lobi ve başlangıç öncesi sabitlenmiş revizyonlar yeniden doğrulanır (yalnızca `published`); geçersizse oturum `question_approval_withdrawn` / `question_revision_changed` ile iptal. Katılımcı okunur bir gerekçe görür, soru kimliği denetim kaydında kalır. Konu ve ilgili kart da revizyonla birlikte sabitlenir; sonradan yapılan onaysız düzenleme bitmiş oturumun sonuç ekranını değiştirmez. |
 | WS kopması | Gateway üyeliği düşer, `connection_interrupted` olayı; istemci yeniden bağlanınca `session.subscribe` → snapshot. |
 | Bilinmeyen teslim | İstemci ağ hatasında aynı anahtarla 3 deneme; yine olmazsa “iletilemedi” gösterir, başarı uydurmaz; `GET /quiz/sessions/:id/answers/:key` ile makbuz sorgulanır. |
 | Sağlık | `/health` (liveness), `/ready` (DB ping + lider bilgisi), `/time` (gösterim için saat ofseti). |
@@ -161,7 +166,8 @@ Uzun ömürlü WebSocket bağlantısı taşıyan tek container/VM (ör. Fly.io, 
 ## 8. Bilinen sınırlar
 
 - Ağ gecikmesi puana yansır (sunucu alım zamanı); adalet iddiası yoktur.
-- Tek süreç; lider devri yok (ikinci süreç bekler, devralmaz — kilit sahibi ölünce alır).
+- Tek süreç; yatay ölçek yok. İkinci süreç yalnızca kilit boşalınca devralır ve yarıda kalan oturumları iptal eder (bkz. §4.3).
+- Puan ve zaman damgaları monoton olmayan sistem saatine (`Date.now()`) dayanır; sunucu saatinin oturum sırasında atlaması M1 risk kaydına eklendi.
 - Native doğrulama bu ortamda yapılmadı (web önizleme ile doğrulandı).
 - Reveal yayını kişiye özel olduğundan üye başına bir emit; ~binlerce kullanıcıda ölçülmeli.
 - İçerik görselleri yok (lisans belirsizliği), yalnızca metin.

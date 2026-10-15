@@ -27,3 +27,10 @@ export function errText(e: unknown): string {
   if (e instanceof ApiError) return `${e.message}${e.details ? ' — ' + JSON.stringify(e.details) : ''}`;
   return (e as Error)?.message ?? 'Hata';
 }
+
+/** Approval provenance shown next to every approved question; a test approval is never human review. */
+export function approvalKindLabel(kind: 'editor_review' | 'automated_test' | null): string {
+  if (kind === 'automated_test') return 'TEST ONAYI (insan incelemesi değil)';
+  if (kind === 'editor_review') return 'editör onayı';
+  return '—';
+}

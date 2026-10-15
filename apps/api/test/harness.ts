@@ -127,7 +127,7 @@ export async function publishQuestion(t: TestApp, editor: TestUser, id: string):
   else if (current.status === 'review') steps.push('approve', 'publish');
   else if (current.status === 'approved') steps.push('publish');
   for (const action of steps) {
-    const r = await api(t.baseUrl, editor.token, 'POST', `/admin/questions/${id}/${action}`, action === 'approve' ? { reason: 'test approval' } : {});
+    const r = await api(t.baseUrl, editor.token, 'POST', `/admin/questions/${id}/${action}`, action === 'approve' ? { reason: 'test approval', approvalKind: 'automated_test' } : {});
     if (r.status >= 300) throw new Error(`${action} failed: ${JSON.stringify(r.body)}`);
   }
   return (await api<AdminQuestion>(t.baseUrl, editor.token, 'GET', `/admin/questions/${id}`)).body;

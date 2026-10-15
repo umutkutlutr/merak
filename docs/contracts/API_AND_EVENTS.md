@@ -22,6 +22,7 @@ Kodlar ve HTTP durumları (`errorMessagesTr` Türkçe metinleri taşır):
 | CONTENT_NOT_PUBLISHED | 404 | Yayında olmayan içerik |
 | SESSION_NOT_JOINABLE / SESSION_CANCELLED / SESSION_COMPLETED | 409 | Katılım |
 | PARTICIPATION_EXISTS | 409 | İkinci cihaz |
+| STAFF_CANNOT_PLAY | 403 | Editör/yönetici hesabı oyuncu olarak katılamaz (cevap anahtarlarını görebilir) |
 | PARTICIPATION_TOKEN_INVALID | 403 | Token eşleşmedi |
 | NOT_PARTICIPANT | 403 | Katılmamış kullanıcı |
 | QUESTION_NOT_OPEN / QUESTION_CLOSED | 409 | Pencere dışı |
@@ -36,7 +37,7 @@ Kodlar ve HTTP durumları (`errorMessagesTr` Türkçe metinleri taşır):
 ## REST
 
 ### Kimlik ve profil
-- `GET /me` → `{ profile, created }` — ilk çağrı profili oluşturur (`signup_completed` olayı bir kez).
+- `GET /me` → `{ profile, created }` — ilk çağrı profili oluşturur (`signup_completed` olayı bir kez). Varsayılan `username` rastgeledir (`oyuncu_xxxxxx`); e-postadan türetilmez.
 - `PATCH /me` `{ username?, displayName?, interests? }` → `{ profile }`.
 
 ### Ana sayfa ve içerik
@@ -55,7 +56,7 @@ Kodlar ve HTTP durumları (`errorMessagesTr` Türkçe metinleri taşır):
 - `GET /quiz/current` → `{ session: QuizSessionSummary|null, serverTime, myParticipation }` (soru içeriği taşımaz).
 - `GET /quiz/history` → katıldığım tamamlanmış/iptal oturumlar.
 - `GET /quiz/sessions/:id` → özet + `myParticipation`.
-- `POST /quiz/sessions/:id/join` `{ participationToken? }` → `JoinSessionResponse`:
+- `POST /quiz/sessions/:id/join` `{ participationToken? }` → `JoinSessionResponse` (editör/yönetici hesapları `STAFF_CANNOT_PLAY`):
   ```json
   { "participantId": "…", "participationToken": "<cihazda sakla>", "eligibleFromPosition": 1, "resumed": false, "snapshot": { … } }
   ```
@@ -76,9 +77,9 @@ Kodlar ve HTTP durumları (`errorMessagesTr` Türkçe metinleri taşır):
 
 ### Yönetim (`editor` | `admin`)
 - `GET /admin/topics`
-- `GET /admin/questions`, `GET /admin/questions/:id`, `POST /admin/questions`, `PATCH /admin/questions/:id` (yeni revizyon, onay sıfırlanır), `POST /admin/questions/:id/{submit_review|approve|reject|publish|archive|reopen}` `{ reason?, expectedRevisionId? }`
+- `GET /admin/questions`, `GET /admin/questions/:id`, `POST /admin/questions`, `PATCH /admin/questions/:id` (yeni revizyon, onay sıfırlanır), `POST /admin/questions/:id/{submit_review|approve|reject|publish|archive|reopen}` `{ reason?, expectedRevisionId?, approvalKind? }` — `approvalKind` yalnızca `approve` için: `editor_review` (varsayılan) veya `automated_test` (toplu buton, demo betikleri, testler; insan incelemesi sayılmaz). Soru ve oturum görünümlerinde `approvalKind` döner; içerik geçişleri bu alanı reddeder (400)
 - `GET /admin/content`, `POST /admin/content`, `PATCH /admin/content/:id`, `POST /admin/content/:id/{action}`
-- `GET /admin/audit?limit=`
+- `GET /admin/audit?limit=` — editörlere `session.*` kayıtlarının `metadata.pins` alanı gösterilmez (oturum içeriği yalnızca yönetici).
 - **admin**: `GET /admin/sessions`, `GET /admin/sessions/:id`, `POST /admin/sessions` (`AdminCreateSessionInput`: başlık, `scheduledStartAt`, tam 5 `questionIds`, `rulesOverride?` test amaçlı), `POST /admin/sessions/:id/cancel { reason }`, `GET /admin/analytics/active-users?days=7`
 
 ### Sağlık
@@ -98,6 +99,8 @@ Kodlar ve HTTP durumları (`errorMessagesTr` Türkçe metinleri taşır):
 | S→C | `session.cancelled` | `{ …zarf, reason, message }` |
 
 İstemci kuralı: `stateVersion <= uygulanan` olan olaylar atılır; bağlantı kopup gelince `session.subscribe` tekrar edilir; beklenen geçiş 1,5 sn gecikirse `state.resync`.
+
+Kimlik: token el sıkışmada doğrulanır; `session.subscribe` ve `state.resync` her çağrıda token süresini yeniden kontrol eder (5 sn tolerans) ve süresi dolmuşsa `{ ok:false, code:'AUTH_TOKEN_EXPIRED' }` döner. Mobil istemci her el sıkışmada güncel token’ı ister ve bu kodda yeni bir el sıkışma açar.
 
 ## Analitik olay şeması
 

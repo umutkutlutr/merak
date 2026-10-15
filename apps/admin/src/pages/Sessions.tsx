@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { AdminQuestion, AdminSession } from '@merak/contracts';
-import { api, errText } from '../lib/api';
+import { api, approvalKindLabel, errText } from '../lib/api';
 
 export function SessionsPage({ isAdmin }: { isAdmin: boolean }) {
   const [sessions, setSessions] = useState<AdminSession[]>([]);
@@ -104,7 +104,7 @@ export function SessionsPage({ isAdmin }: { isAdmin: boolean }) {
           {s.cancelledReason ? <p className="error">İptal: {s.cancelledReason}</p> : null}
           {detail?.id === s.id ? (
             <table>
-              <thead><tr><th>#</th><th>Soru</th><th>Rev.</th><th>Durum</th><th>Açılış</th><th>Kapanış</th><th>Revizyon geçerli mi?</th></tr></thead>
+              <thead><tr><th>#</th><th>Soru</th><th>Rev.</th><th>Durum</th><th>Açılış</th><th>Kapanış</th><th>Revizyon geçerli mi?</th><th>Onay</th></tr></thead>
               <tbody>
                 {s.questions.map((q) => (
                   <tr key={q.sessionQuestionId}>
@@ -112,6 +112,7 @@ export function SessionsPage({ isAdmin }: { isAdmin: boolean }) {
                     <td className="muted">{q.opensAt ? new Date(q.opensAt).toLocaleTimeString('tr-TR') : '—'}</td>
                     <td className="muted">{q.closesAt ? new Date(q.closesAt).toLocaleTimeString('tr-TR') : '—'}</td>
                     <td className={q.revisionStillValid ? 'ok' : 'error'}>{q.revisionStillValid ? 'evet' : 'HAYIR — oturum başlatılmaz'}</td>
+                    <td className={q.approvalKind === 'automated_test' ? 'error' : 'muted'}>{approvalKindLabel(q.approvalKind)}</td>
                   </tr>
                 ))}
               </tbody>

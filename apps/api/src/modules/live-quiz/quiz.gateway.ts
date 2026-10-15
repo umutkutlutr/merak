@@ -200,6 +200,9 @@ export class QuizGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   private requireAuth(socket: Socket): AuthUser {
     const auth = this.authOf(socket);
     if (!auth) throw new AppError('AUTH_REQUIRED');
+    // The handshake token was valid when the socket connected; an expired one may not keep using it
+    // (same 5 s tolerance as the verifier). Wall clock on purpose: token expiry is not quiz time.
+    if (auth.expiresAtMs !== null && Date.now() > auth.expiresAtMs + 5_000) throw new AppError('AUTH_TOKEN_EXPIRED');
     return auth;
   }
 

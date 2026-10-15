@@ -4,6 +4,7 @@ import { adminQuery, api, createTestApp, createUser, mintToken, type TestApp } f
 import { runSeed } from '../src/seed/seed.js';
 import { TEST_DATABASE_URL } from './setup.js';
 import { runMigrations } from '../src/db/migrate.js';
+import { getEnv, setEnvForTests } from '../src/config/env.js';
 
 let t: TestApp;
 beforeAll(async () => {
@@ -37,6 +38,15 @@ describe('K01 migrations and seed', () => {
     expect(Number(counts.rows[0]!.items)).toBe(first.content.created);
     expect(Number(counts.rows[0]!.questions)).toBe(first.questions.created);
   });
+  it('seed refuses to create staff accounts with the public default password against a non-local Auth server', async () => {
+    const original = getEnv();
+    setEnvForTests({ ...original, SUPABASE_AUTH_URL: 'https://example.supabase.co/auth/v1', SEED_PASSWORD: undefined });
+    try {
+      await expect(runSeed({ quiet: true })).rejects.toThrow(/non-local Auth server/);
+    } finally {
+      setEnvForTests(original);
+    }
+  });
   it('seeded questions are DRAFT and flagged as seed samples; cards carry seed_sample production method and unverified sources', async () => {
     const q = await adminQuery<{ status: string; n: string }>("select status, count(*) as n from app.questions group by status");
     if ('error' in q) throw new Error(q.error);
@@ -59,7 +69,8 @@ describe('K02 identity, roles and privacy', () => {
     expect(first.status).toBe(200);
     expect(first.body.created).toBe(true);
     expect(first.body.profile.id).toBe(sub);
-    expect(first.body.profile.username).toMatch(/^zeynep_kaya/);
+    expect(first.body.profile.username).toMatch(/^oyuncu_[0-9a-z]{6}$/); // shown to other players: never from the e-mail
+    expect(first.body.profile.username).not.toMatch(/zeynep|kaya/i);
     expect(first.body.profile.role).toBe('member');
     const second = await api(t.baseUrl, token, 'GET', '/me');
     expect(second.body.created).toBe(false);

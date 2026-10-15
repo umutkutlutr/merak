@@ -9,7 +9,7 @@ import { ProfilesService } from './profiles.service.js';
 export class ProfilesController {
   constructor(private readonly profiles: ProfilesService) {}
 
-  /** First call after login creates the profile (username derived from the e-mail local part). */
+  /** First call after login creates the profile (a random default username; never derived from the e-mail). */
   @Get()
   async me(@CurrentUser() user: AuthUser): Promise<MeResponse> {
     return this.profiles.ensureProfile(user);

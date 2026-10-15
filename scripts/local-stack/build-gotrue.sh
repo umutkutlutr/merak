@@ -5,6 +5,8 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 VERSION="${GOTRUE_VERSION:-v2.197.0}"
+# Commit the v2.197.0 tag pointed to when M0 was built; a moved or re-pointed tag fails the build instead of silently changing it.
+EXPECTED_COMMIT="${GOTRUE_COMMIT:-4eee58f296d9698a1c2c0ae14d7a0b379c7622d3}"
 SRC_DIR="${GOTRUE_SRC_DIR:-$ROOT/.local/src/supabase-auth}"
 OUT="$ROOT/.local/bin/gotrue"
 
@@ -19,6 +21,10 @@ else
   (cd "$SRC_DIR" && git fetch --depth 1 origin "refs/tags/$VERSION:refs/tags/$VERSION" && git checkout -q "$VERSION")
 fi
 cd "$SRC_DIR"
+ACTUAL_COMMIT="$(git rev-parse HEAD)"
+if [[ "$VERSION" == "v2.197.0" && "$ACTUAL_COMMIT" != "$EXPECTED_COMMIT" ]]; then
+  echo "gotrue $VERSION resolved to $ACTUAL_COMMIT, expected $EXPECTED_COMMIT; refusing to build" >&2; exit 1
+fi
 export GOTOOLCHAIN=auto GOFLAGS=-mod=mod
 go build -ldflags "-X github.com/supabase/auth/internal/utilities.Version=${VERSION#v}" -o "$OUT" .
 echo "built $OUT"

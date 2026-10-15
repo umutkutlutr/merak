@@ -70,7 +70,7 @@ async function main() {
     let s = q.status;
     if (s === 'archived') { await api(editor, 'POST', `/admin/questions/${q.id}/reopen`, {}); s = 'draft'; }
     if (s === 'draft' || s === 'rejected') { await api(editor, 'POST', `/admin/questions/${q.id}/submit_review`, {}); s = 'review'; }
-    if (s === 'review') { await api(editor, 'POST', `/admin/questions/${q.id}/approve`, { reason: 'TEST ONAYI — otomatik web demo, insan incelemesi değildir' }); s = 'approved'; }
+    if (s === 'review') { await api(editor, 'POST', `/admin/questions/${q.id}/approve`, { reason: 'TEST ONAYI — otomatik web demo, insan incelemesi değildir', approvalKind: 'automated_test' }); s = 'approved'; }
     if (s === 'approved') await api(editor, 'POST', `/admin/questions/${q.id}/publish`, {});
   }
   // The app's Yarış tab shows the earliest active session. Cancel leftovers (e.g. from an aborted

@@ -165,6 +165,9 @@ export class SessionsService {
         await tx.update(sessionParticipants).set({ lastSeenAt: now }).where(eq(sessionParticipants.id, existing.id));
         return { participant: existing, token, resumed: true };
       }
+      // Editors and admins can read answer keys (question bank, session pins), so they never play.
+      const [me] = await tx.select({ role: profiles.role }).from(profiles).where(eq(profiles.id, userId)).limit(1);
+      if (me && me.role !== 'member') throw new AppError('STAFF_CANNOT_PLAY');
       const freshToken = newParticipationToken();
       const [participant] = await tx
         .insert(sessionParticipants)

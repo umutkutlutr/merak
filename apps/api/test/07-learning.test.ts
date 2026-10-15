@@ -68,6 +68,19 @@ describe('K11 learning progress', () => {
     expect(p2.body.dailyTask.progress).toBe(1);
     expect(p2.body.learningXpTotal).toBe(10);
   });
+  it('daily task is recorded once when the 2nd and 3rd distinct items are completed concurrently', async () => {
+    for (let round = 0; round < 5; round++) {
+      const u = await createUser(t, 'member', `race${round}`);
+      await api(t.baseUrl, u.token, 'POST', `/content/${cards[0]!.id}/complete`);
+      const pair = await Promise.all([cards[1]!, cards[2]!].map((c) => api(t.baseUrl, u.token, 'POST', `/content/${c.id}/complete`)));
+      expect(pair.map((r) => r.status)).toEqual([201, 201]);
+      expect(pair.filter((r) => r.body.dailyTask.completedNow)).toHaveLength(1);
+      const rows = await adminQuery<{ n: string }>(`select count(*) as n from app.daily_task_completions where user_id = '${u.sub}'`);
+      if ('error' in rows) throw new Error(rows.error);
+      expect(rows.rows[0]!.n).toBe('1');
+    }
+  });
+
   it('day boundary: a completion at 23:30 Istanbul and another at 00:30 the next day fall in different task days', async () => {
     const zeynep = await createUser(t, 'member', 'zeynep');
     const at = (iso: string) => {

@@ -30,9 +30,16 @@ import { SessionsService } from '../live-quiz/sessions.service.js';
 import { QuizGateway } from '../live-quiz/quiz.gateway.js';
 import { QuestionsService } from '../question-bank/questions.service.js';
 import { AnalyticsService } from '../analytics/analytics.service.js';
+import { ProfilesService } from '../profiles/profiles.service.js';
+import { AppError } from '../../common/errors.js';
 import { desc } from 'drizzle-orm';
 
 const actionPipe = new ZodValidationPipe(ReviewActionSchema);
+
+function omitPins(metadata: Record<string, unknown>): Record<string, unknown> {
+  const { pins: _pins, ...rest } = metadata;
+  return rest;
+}
 
 /**
  * Narrow editorial + test-session administration. Every route is role-checked on the server
@@ -51,6 +58,7 @@ export class AdminController {
     private readonly audit: AuditService,
     private readonly analytics: AnalyticsService,
     private readonly clock: ClockService,
+    private readonly profiles: ProfilesService,
   ) {}
 
   // ---------- topics ----------
@@ -82,6 +90,7 @@ export class AdminController {
     @Param('action', actionPipe) action: ReviewAction,
     @Body(new ZodValidationPipe(ReviewTransitionInputSchema)) body: ReviewTransitionInput,
   ) {
+    if (body.approvalKind) throw new AppError('VALIDATION_FAILED', 'approvalKind yalnızca sorular için kullanılır.');
     return this.content.adminTransition(u.userId, id, action, body);
   }
 
@@ -149,8 +158,11 @@ export class AdminController {
 
   // ---------- audit & analytics ----------
   @Get('audit')
-  async auditLog(@Query('limit') limit?: string) {
-    return { items: await this.audit.list(Math.min(Number(limit) || 100, 500)) };
+  async auditLog(@CurrentUser() u: AuthUser, @Query('limit') limit?: string) {
+    const items = await this.audit.list(Math.min(Number(limit) || 100, 500));
+    if ((await this.profiles.getRole(u.userId)) === 'admin') return { items };
+    // Editors may not see session composition (GET /admin/sessions is admin-only): drop the pinned questions.
+    return { items: items.map((e) => (e.action.startsWith('session.') && e.metadata ? { ...e, metadata: omitPins(e.metadata) } : e)) };
   }
 
   @Roles('admin')
@@ -187,7 +199,8 @@ export class AdminController {
           opensAt: x.sq.opensAt?.toISOString() ?? null,
           closesAt: x.sq.closesAt?.toISOString() ?? null,
           revisionStillValid:
-            ['approved', 'published'].includes(x.q.status) && x.q.approvedRevisionId === x.sq.questionRevisionId && x.q.currentRevisionId === x.sq.questionRevisionId,
+            x.q.status === 'published' && x.q.approvedRevisionId === x.sq.questionRevisionId && x.q.currentRevisionId === x.sq.questionRevisionId,
+          approvalKind: x.q.approvedRevisionId === x.sq.questionRevisionId ? (x.q.approvalKind ?? null) : null,
         })),
       createdBy: r.createdBy,
       createdAt: r.createdAt.toISOString(),

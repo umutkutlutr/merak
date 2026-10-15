@@ -63,12 +63,12 @@ export class QuestionsService {
       .select({
         explanation: questionRevisions.explanation,
         correctOptionId: questionAnswerKeys.correctOptionId,
-        topicId: questions.topicId,
-        relatedContentItemId: questions.relatedContentItemId,
+        // Pinned with the revision: an unapproved edit of the question cannot change a past session's links.
+        topicId: questionRevisions.topicId,
+        relatedContentItemId: questionRevisions.relatedContentItemId,
       })
       .from(questionRevisions)
       .innerJoin(questionAnswerKeys, eq(questionAnswerKeys.questionRevisionId, questionRevisions.id))
-      .innerJoin(questions, eq(questions.id, questionRevisions.questionId))
       .where(eq(questionRevisions.id, revisionId))
       .limit(1);
     if (!rev) throw new AppError('NOT_FOUND');
@@ -131,7 +131,8 @@ export class QuestionsService {
     const byId = new Map(rows.map((r) => [r.id, r]));
     for (const p of pins) {
       const q = byId.get(p.questionId);
-      if (!q || !['approved', 'published'].includes(q.status) || !q.approvedRevisionId) {
+      // Same rule as scheduling (resolveSchedulable): only a published question may run.
+      if (!q || q.status !== 'published' || !q.approvedRevisionId) {
         return { ok: false, reason: 'question_approval_withdrawn', questionId: p.questionId };
       }
       if (q.approvedRevisionId !== p.revisionId || q.currentRevisionId !== p.revisionId) {
@@ -233,6 +234,7 @@ export class QuestionsService {
         .set({
           currentRevisionId: revId,
           approvedRevisionId: null,
+          approvalKind: null,
           topicId: input.topicId,
           relatedContentItemId: input.relatedContentItemId ?? null,
           status: 'draft',
@@ -261,7 +263,7 @@ export class QuestionsService {
     actorUserId: string,
     id: string,
     action: ReviewAction,
-    input: { reason?: string; expectedRevisionId?: string },
+    input: { reason?: string; expectedRevisionId?: string; approvalKind?: 'editor_review' | 'automated_test' },
   ): Promise<AdminQuestion> {
     if (action === 'reject' && !input.reason) throw new AppError('VALIDATION_FAILED', 'Ret için gerekçe zorunlu.');
     await this.db.transaction(async (tx) => {
@@ -272,12 +274,14 @@ export class QuestionsService {
       const patch: Partial<typeof questions.$inferInsert> = { status: to, updatedAt: new Date() };
       if (action === 'approve') {
         patch.approvedRevisionId = q.currentRevisionId;
+        patch.approvalKind = input.approvalKind ?? 'editor_review';
         patch.reviewedBy = actorUserId;
         patch.reviewedAt = new Date();
         patch.reviewNote = input.reason ?? null;
       }
       if (action === 'reject' || action === 'archive' || action === 'reopen') {
         patch.approvedRevisionId = null;
+        patch.approvalKind = null;
         if (action === 'reject') {
           patch.reviewedBy = actorUserId;
           patch.reviewedAt = new Date();
@@ -292,7 +296,7 @@ export class QuestionsService {
           targetType: 'question',
           targetId: id,
           reason: input.reason ?? null,
-          metadata: { from: q.status, to, revisionId: q.currentRevisionId },
+          metadata: { from: q.status, to, revisionId: q.currentRevisionId, ...(action === 'approve' ? { approvalKind: patch.approvalKind } : {}) },
         },
         tx,
       );
@@ -319,6 +323,8 @@ export class QuestionsService {
         sourceVerified: input.sourceVerified,
         language: input.language,
         productionMethod: input.productionMethod,
+        topicId: input.topicId,
+        relatedContentItemId: input.relatedContentItemId ?? null,
         createdBy: actorUserId,
       })
       .returning({ id: questionRevisions.id });
@@ -358,6 +364,7 @@ export class QuestionsService {
         createdBy: rev.createdBy,
       },
       approvedRevisionId: q.approvedRevisionId,
+      approvalKind: q.approvalKind ?? null,
       reviewedBy: q.reviewedBy,
       reviewedAt: q.reviewedAt?.toISOString() ?? null,
       reviewNote: q.reviewNote,

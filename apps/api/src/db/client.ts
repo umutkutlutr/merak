@@ -7,7 +7,7 @@ export type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
 export type DbOrTx = Db | Tx;
 
 export function createPool(connectionString: string, max = 10): Pool {
-  return new Pool({ connectionString, max, application_name: 'merak-api' });
+  return new Pool({ connectionString, max, application_name: 'merak-api', keepAlive: true });
 }
 
 export function createDb(pool: Pool): Db {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { AdminQuestion, AdminQuestionInput, ReviewAction, Topic } from '@merak/contracts';
-import { api, errText } from '../lib/api';
+import { api, approvalKindLabel, errText } from '../lib/api';
 
 const actionsFor = (status: string): ReviewAction[] =>
   ({ draft: ['submit_review', 'archive'], review: ['approve', 'reject'], approved: ['publish', 'reject', 'archive'], published: ['archive'], rejected: ['submit_review', 'reopen'], archived: ['reopen'] })[status] as ReviewAction[] ?? [];
@@ -51,7 +51,7 @@ export function QuestionsPage() {
         let status = q.status;
         if (status === 'archived') { await api('POST', `/admin/questions/${id}/reopen`, {}); status = 'draft'; }
         if (status === 'draft' || status === 'rejected') { await api('POST', `/admin/questions/${id}/submit_review`, {}); status = 'review'; }
-        if (status === 'review') { await api('POST', `/admin/questions/${id}/approve`, { reason: 'TEST ONAYI — toplu işlem, insan incelemesi değildir' }); status = 'approved'; }
+        if (status === 'review') { await api('POST', `/admin/questions/${id}/approve`, { reason: 'TEST ONAYI — toplu işlem, insan incelemesi değildir', approvalKind: 'automated_test' }); status = 'approved'; }
         if (status === 'approved') await api('POST', `/admin/questions/${id}/publish`, {});
       } catch (e) {
         setMsg({ kind: 'error', text: errText(e) });
@@ -96,7 +96,8 @@ export function QuestionsPage() {
           </ul>
           <p className="muted">Açıklama: {q.currentRevision.explanation}</p>
           <p className="muted">Kaynak: {q.currentRevision.sourceUrl ? <a href={q.currentRevision.sourceUrl} target="_blank" rel="noreferrer">{q.currentRevision.sourceTitle ?? q.currentRevision.sourceUrl}</a> : '—'} · {q.currentRevision.sourceVerified ? 'doğrulandı' : 'doğrulanmadı'} · {q.currentRevision.language}
-            {q.reviewedAt ? ` · inceleme: ${new Date(q.reviewedAt).toLocaleString('tr-TR')}${q.reviewNote ? ` (${q.reviewNote})` : ''}` : ''}</p>
+            {q.reviewedAt ? ` · inceleme: ${new Date(q.reviewedAt).toLocaleString('tr-TR')}${q.reviewNote ? ` (${q.reviewNote})` : ''}` : ''}
+            {q.approvalKind ? <> · <span className={q.approvalKind === 'automated_test' ? 'error' : 'ok'} data-testid="approval-kind">{approvalKindLabel(q.approvalKind)}</span></> : null}</p>
         </div>
       ))}
     </div>

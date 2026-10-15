@@ -9,6 +9,8 @@ export interface AuthUser {
   email: string | null;
   authRole: string | null;
   authSessionId: string | null;
+  /** Token expiry (ms since epoch). A WebSocket keeps the handshake identity, so handlers re-check this. */
+  expiresAtMs: number | null;
 }
 
 /**
@@ -69,6 +71,7 @@ export class JwtVerifier {
       email: typeof payload.email === 'string' ? payload.email : null,
       authRole: typeof payload.role === 'string' ? payload.role : null,
       authSessionId: typeof payload.session_id === 'string' ? payload.session_id : null,
+      expiresAtMs: typeof payload.exp === 'number' ? payload.exp * 1000 : null,
     };
   }
 }

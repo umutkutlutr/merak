@@ -65,6 +65,9 @@ export class LearningService {
     const now = new Date(nowMs);
     const localDate = istanbulLocalDate(now);
     return this.db.transaction(async (tx) => {
+      // One completion per user at a time: under READ COMMITTED two concurrent completions would each count
+      // only their own new row and both miss the third distinct item, losing the daily-task record.
+      await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`learning-complete:${userId}`}, 0))`);
       await this.assertPublished(contentItemId, tx);
       const inserted = await tx
         .insert(learningCompletions)

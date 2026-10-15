@@ -13,6 +13,8 @@ export type ConnectionState = 'connecting' | 'connected' | 'reconnecting' | 'off
 export class QuizSocket {
   private socket: Socket | null = null;
   private lastVersion = -1;
+  private authRetries = 0;
+  private authRetryTimer: ReturnType<typeof setTimeout> | null = null;
   constructor(
     private readonly sessionId: string,
     private readonly participationToken: string,
@@ -27,25 +29,36 @@ export class QuizSocket {
     const token = await currentAccessToken();
     if (!token) throw new Error('AUTH_REQUIRED');
     this.handlers.onConnection('connecting');
-    const socket = io(config.apiUrl, { auth: { token }, transports: ['websocket', 'polling'], reconnection: true, reconnectionDelay: 500, reconnectionDelayMax: 5000 });
+    // auth as a callback: every handshake (first connect and each reconnect) asks for the current access
+    // token, which auth-js refreshes, instead of replaying the token the screen was opened with.
+    const socket = io(config.apiUrl, {
+      auth: (cb) => void currentAccessToken().then((t) => cb({ token: t ?? '' })),
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionDelay: 500,
+      reconnectionDelayMax: 5000,
+    });
     this.socket = socket;
     socket.on('connect', () => {
+      this.authRetries = 0;
       this.handlers.onConnection('connected');
       socket.emit(WS_EVENTS.subscribe, { sessionId: this.sessionId, participationToken: this.participationToken }, (ack: WsAck) => {
         if (ack.ok) this.applySnapshot(ack.snapshot);
+        else if (isAuthCode(ack.code)) this.reconnectWithFreshToken();
         else this.handlers.onEvent('subscribe.error', { stateVersion: Number.MAX_SAFE_INTEGER, code: ack.code, message: ack.message });
       });
     });
-    socket.io.on('reconnect_attempt', async () => {
-      this.handlers.onConnection('reconnecting');
-      const fresh = await currentAccessToken();
-      if (fresh) socket.auth = { token: fresh };
-    });
+    socket.io.on('reconnect_attempt', () => this.handlers.onConnection('reconnecting'));
     socket.on('disconnect', () => {
       this.handlers.onConnection('reconnecting');
       track('connection_interrupted', { quizSessionId: this.sessionId, props: { source: 'client_disconnect' } });
     });
-    socket.on('connect_error', () => this.handlers.onConnection('offline'));
+    socket.on('connect_error', () => {
+      this.handlers.onConnection('offline');
+      // A handshake refused by the server's auth middleware is not retried by socket.io itself
+      // (socket.active is false): retry with backoff; the auth callback fetches a refreshed token.
+      if (!socket.active) this.scheduleAuthRetry();
+    });
     for (const name of [WS_EVENTS.lobby, WS_EVENTS.questionOpened, WS_EVENTS.questionRevealed, WS_EVENTS.sessionCompleted, WS_EVENTS.sessionCancelled]) {
       socket.on(name, (payload: { stateVersion: number }) => {
         if (typeof payload?.stateVersion !== 'number' || payload.stateVersion <= this.lastVersion) return; // stale/duplicate
@@ -63,8 +76,27 @@ export class QuizSocket {
       if (ack.ok) {
         this.applySnapshot(ack.snapshot);
         track('state_resynced', { quizSessionId: this.sessionId, props: { stateVersion: ack.snapshot.stateVersion } });
-      }
+      } else if (isAuthCode(ack.code)) this.reconnectWithFreshToken();
     });
+  }
+
+  /** The socket's handshake identity expired: open a new handshake (subscribe + snapshot follow on 'connect'). */
+  private reconnectWithFreshToken(): void {
+    const socket = this.socket;
+    if (!socket) return;
+    this.handlers.onConnection('reconnecting');
+    socket.disconnect();
+    socket.connect();
+  }
+
+  private scheduleAuthRetry(): void {
+    if (this.authRetryTimer || !this.socket) return;
+    const delay = Math.min(1_000 * 2 ** this.authRetries, 15_000);
+    this.authRetries += 1;
+    this.authRetryTimer = setTimeout(() => {
+      this.authRetryTimer = null;
+      this.socket?.connect();
+    }, delay);
   }
 
   private applySnapshot(s: SessionSnapshot): void {
@@ -74,8 +106,14 @@ export class QuizSocket {
   }
 
   close(): void {
+    if (this.authRetryTimer) clearTimeout(this.authRetryTimer);
+    this.authRetryTimer = null;
     this.socket?.removeAllListeners();
     this.socket?.close();
     this.socket = null;
   }
+}
+
+function isAuthCode(code: string): boolean {
+  return code === 'AUTH_TOKEN_EXPIRED' || code === 'AUTH_INVALID_TOKEN' || code === 'AUTH_REQUIRED';
 }

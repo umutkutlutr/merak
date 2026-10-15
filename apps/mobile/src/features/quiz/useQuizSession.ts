@@ -132,6 +132,10 @@ export function useQuizSession(sessionId: string) {
             const r = payload.reveal as RevealView;
             if (r.myAnswer) {
               answersRef.current.set(r.sessionQuestionId, { ...answerFor(r.sessionQuestionId), status: 'accepted', optionId: r.myAnswer.optionId });
+            } else if (['accepted', 'submitting', 'unknown'].includes(answerFor(r.sessionQuestionId).status)) {
+              // The reveal was built before our answer committed (received in time, processed after the close):
+              // fetch the authoritative snapshot instead of showing "Cevapsız" for an answer the server kept.
+              setTimeout(() => socketRef.current?.resync(), 300);
             }
             setState((s) => ({ ...s, phase: 'reveal', reveal: r, question: null, answer: answersRef.current.get(r.sessionQuestionId) ?? null, session: s.session ? { ...s.session, stateVersion: payload.stateVersion } : s.session, lastSyncedAt: Date.now() }));
           } else if (name === WS_EVENTS.sessionCompleted) {
@@ -247,8 +251,10 @@ export function useQuizSession(sessionId: string) {
         } catch (e) {
           if (e instanceof ApiError && e.code !== 'NETWORK') {
             if (e.code === 'ANSWER_ALREADY_ACCEPTED') {
+              // The stored answer may be a different option than the one just tapped: show none until the
+              // resync snapshot brings the server's record (myParticipation.answers) back.
+              setAnswer(q.sessionQuestionId, { status: 'accepted', optionId: null, message: e.message });
               socketRef.current?.resync();
-              setAnswer(q.sessionQuestionId, { status: 'accepted', message: e.message });
             } else setAnswer(q.sessionQuestionId, { status: 'rejected', message: e.message });
             return;
           }

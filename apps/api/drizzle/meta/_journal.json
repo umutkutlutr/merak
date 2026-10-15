@@ -15,6 +15,13 @@
       "when": 1792023232235,
       "tag": "0001_privileges_and_checks",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792104043624,
+      "tag": "0002_revision_links_and_approval_kind",
+      "breakpoints": true
     }
   ]
 }

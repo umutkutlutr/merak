@@ -527,7 +527,7 @@ Kapı mantığı (`app/_layout.tsx › Gate`):
 3. `ready && session` ve rota `(auth)` → `replace('/(tabs)')` (Ana Sayfa).
 4. Oturum AsyncStorage’da (`merak.auth`) kalıcıdır; uygulama yeniden açıldığında kullanıcı doğrudan Ana Sayfa’ya düşer. Giriş ekranını tekrar göstermeyi tasarlama.
 
-İlk profil: kayıt yalnızca e-posta + şifre ister; kullanıcı adı ve görünen ad **sunucuda** ilk `GET /me` çağrısında üretilir (`created=true` yalnızca bu ilk çağrıda döner). M0’da ilgi alanı seçimi, kullanıcı adı girişi, sözleşme onayı ve karşılama ekranı **yoktur**; ilgi alanları Profil’de serbest, virgülle ayrılmış bir metin alanıdır ve ürün tarafından kullanılmaz (A-6 açık).
+İlk profil: kayıt yalnızca e-posta + şifre ister; kullanıcı adı ve görünen ad **sunucuda** ilk `GET /me` çağrısında üretilir (`created=true` yalnızca bu ilk çağrıda döner). Varsayılan ad rastgeledir (`oyuncu_` + 6 küçük harf/rakam, ör. `oyuncu_4k9x2m`) ve e-postadan **türetilmez**, çünkü sıralamada diğer oyunculara görünür (KVKK). M0’da ilgi alanı seçimi, kullanıcı adı girişi, sözleşme onayı ve karşılama ekranı **yoktur**; ilgi alanları Profil’de serbest, virgülle ayrılmış bir metin alanıdır ve ürün tarafından kullanılmaz (A-6 açık).
 
 `[M1+]` **3 ekranlık giriş** — `created=true` kancasına bağlı, atlanabilir, tek seferlik:
 1. `Merhaba, {displayName}` — sunucunun ürettiği `@username` gösterilir, `Kullanıcı adını değiştir` (3–24, `[a-z0-9_]`, hata: `Küçük harf, rakam ve alt çizgi kullan.` / `Bu kullanıcı adı alınmış.`).
@@ -1777,7 +1777,7 @@ Tasarım kabul kontrol listesinin tamamı **Ek D**’dedir. Madde numaraları ay
 
 Kaynak: `packages/contracts/src/common.ts` (`ErrorCodeSchema`, `errorMessagesTr`), `apps/api/src/common/errors.ts` (HTTP durumları), sunucu modüllerindeki `AppError(..., mesaj)` çağrıları, `apps/mobile/src/lib/api.ts`, `apps/admin/src/lib/api.ts`, `apps/mobile/src/features/auth/AuthProvider.tsx`. Hata zarfı: `{ error: { code, message, details?, requestId? } }`. Mesajlar **aynen** gösterilir; seviye ve konum kuralları §6.7/9 ve §6.8’dedir.
 
-### A.1 `errorMessagesTr` — 29 kod
+### A.1 `errorMessagesTr` — 30 kod
 
 | Kod | HTTP | Mesaj (aynen) | Seviye | Mobilde nerede | Admin’de nerede |
 |---|---|---|---|---|---|
@@ -1795,6 +1795,7 @@ Kaynak: `packages/contracts/src/common.ts` (`ErrorCodeSchema`, `errorMessagesTr`
 | `SESSION_CANCELLED` | 409 | `Bu oturum iptal edildi.` | Bilgi | Katılımda → iptal panosu gövdesi; cevap sırasında → ret satırı, ardından iptal panosu; WS iptal mesajı yedeği | — |
 | `SESSION_COMPLETED` | 409 | `Bu oturum tamamlandı.` | Bilgi (gösterilmez) | Katılımda → sonuç yüklenir; cevap sırasında → ret satırı, ardından `completed` | — |
 | `PARTICIPATION_EXISTS` | 409 | `Bu oturuma başka bir cihazdan katıldın. M0 sürümünde ikinci cihaz devralamaz.` | Hata (sakin) | Preview hata satırı; ikinci cihaz çerçevesi (zorunlu) | — |
+| `STAFF_CANNOT_PLAY` | 403 | `Editör ve yönetici hesapları cevap anahtarlarını görebildiği için yarışmaya oyuncu olarak katılamaz.` | Bilgi (sakin) | Preview hata satırı; yalnızca editör/yönetici hesabıyla mobilde `Katıl` denenirse | — |
 | `PARTICIPATION_TOKEN_INVALID` | 403 | `Katılım bilgin doğrulanamadı. Oturuma yeniden katıl.` | Hata | Cevap satırı; socket aboneliği düşerse preview/error’da (`[M1+]` ghost `Yeniden katıl`) | — |
 | `NOT_PARTICIPANT` | 403 | `Bu oturuma katılmış görünmüyorsun.` | Hata | Cevap satırı | — |
 | `QUESTION_NOT_OPEN` | 409 | `Soru henüz açılmadı.` | Hata (ret satırı) | Cevap satırı (saat kayması; oturum `live` değilken) | — |

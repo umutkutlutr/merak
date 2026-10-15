@@ -6,7 +6,8 @@
  *  R1/R10 answer transactions are serialised with session transitions (no receipt after completion);
  *      a replay with the same key still returns the old receipt after the session completed;
  *  R4  a second API process does not cancel or advance a healthy live session; losing the lock
- *      connection stops the leader from advancing.
+ *      connection stops the leader from advancing; a process that takes over from a dead leader cancels
+ *      the interrupted session (M0 restart policy) instead of resuming and ranking it.
  */
 import http from 'node:http';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -19,6 +20,8 @@ import { createApp } from '../src/main.js';
 import { getEnv, setEnvForTests } from '../src/config/env.js';
 import { EngineService } from '../src/modules/live-quiz/engine.service.js';
 import { SchedulerLeaderService, SCHEDULER_LOCK_KEY } from '../src/modules/live-quiz/scheduler-leader.service.js';
+import { SchedulerService } from '../src/modules/live-quiz/scheduler.service.js';
+import { ClockService } from '../src/common/clock.js';
 import { PG_POOL } from '../src/db/db.module.js';
 import type { Pool } from 'pg';
 import type { AddressInfo } from 'node:net';
@@ -171,6 +174,10 @@ describe('R4 single scheduler authority', () => {
       const ready = (await (await fetch(`http://127.0.0.1:${port}/ready`)).json()) as { schedulerLeader: boolean };
       expect(ready.schedulerLeader).toBe(false);
       expect(app2.get(SchedulerLeaderService).isLeader).toBe(false);
+      // On app2's clock Q1 is already overdue, so a leader would close it: app2 must not.
+      app2.get(ClockService).__freezeForTests(t.clock.now() + 13_000);
+      expect(await app2.get(SchedulerService).tick()).toEqual([]);
+      expect(await app2.get(SchedulerService).takeOver()).toEqual([]); // the healthy leader still holds the lock
       await new Promise((r) => setTimeout(r, 600)); // let app2's real 250 ms ticker run a few passes
       const mid = await getState(t, a.u, session.id);
       expect(mid.session.status).toBe('live');
@@ -207,5 +214,33 @@ describe('R4 single scheduler authority', () => {
     expect(await leader.tryAcquire()).toBe(true); // lock is free again → reacquire
     const resumed = await t.scheduler.tick();
     expect(resumed.map((x) => x.kind)).toContain('revealed');
+  });
+
+  it('a process that takes over from a leader that died cancels the interrupted session instead of ranking it', async () => {
+    const { session, users } = await liveSession(1);
+    const [a] = users as [{ u: TestUser; token: string }];
+    const leader = t.app.get(SchedulerLeaderService);
+    const original = getEnv();
+    setEnvForTests({ ...original, QUIZ_SCHEDULER_ENABLED: true });
+    const app2 = await createApp();
+    setEnvForTests(original);
+    try {
+      await app2.listen(0);
+      const scheduler2 = app2.get(SchedulerService);
+      expect(await scheduler2.takeOver()).toEqual([]); // leader alive: nothing to take over
+      await leader.release(); // the leader process dies: its lock connection is gone
+      const taken = await scheduler2.takeOver();
+      expect(app2.get(SchedulerLeaderService).isLeader).toBe(true);
+      expect(taken.map((x) => x.sessionId)).toContain(session.id);
+      const after = await getState(t, a.u, session.id);
+      expect(after.session.status).toBe('cancelled');
+      expect(after.session.cancelledReason).toBe('server_restart');
+      const result = await api(t.baseUrl, a.u.token, 'GET', `/quiz/sessions/${session.id}/result`);
+      expect(result.status).toBe(409); // an interrupted session is never ranked
+    } finally {
+      await app2.close();
+      await app2.get<Pool>(PG_POOL).end().catch(() => undefined);
+      expect(await leader.tryAcquire()).toBe(true); // hand authority back to the test app for later tests
+    }
   });
 });

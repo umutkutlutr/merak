@@ -47,7 +47,7 @@ async function main() {
   for (const q of pick) {
     let status = q.status;
     if (status === 'draft' || status === 'rejected') { await api(editor, 'POST', `/admin/questions/${q.id}/submit_review`, {}); status = 'review'; }
-    if (status === 'review') { await api(editor, 'POST', `/admin/questions/${q.id}/approve`, { reason: 'TEST ONAYI — otomatik demo betiği, insan incelemesi değildir' }); status = 'approved'; }
+    if (status === 'review') { await api(editor, 'POST', `/admin/questions/${q.id}/approve`, { reason: 'TEST ONAYI — otomatik demo betiği, insan incelemesi değildir', approvalKind: 'automated_test' }); status = 'approved'; }
     if (status === 'approved') { await api(editor, 'POST', `/admin/questions/${q.id}/publish`, {}); }
   }
   log('editor', `5 questions test-approved + published`);

@@ -34,6 +34,9 @@ export const AdminQuestionRevisionSchema = z.object({
   createdBy: UuidSchema.nullable(),
 });
 
+export const ApprovalKindSchema = z.enum(['editor_review', 'automated_test']);
+export type ApprovalKind = z.infer<typeof ApprovalKindSchema>;
+
 export const AdminQuestionSchema = z.object({
   id: UuidSchema,
   topic: TopicSchema,
@@ -41,6 +44,8 @@ export const AdminQuestionSchema = z.object({
   /** Latest revision (the one that status refers to). */
   currentRevision: AdminQuestionRevisionSchema,
   approvedRevisionId: UuidSchema.nullable(),
+  /** 'automated_test' = approved by a test/demo shortcut; never counts as human editorial review. */
+  approvalKind: ApprovalKindSchema.nullable(),
   reviewedBy: UuidSchema.nullable(),
   reviewedAt: IsoDateTimeSchema.nullable(),
   reviewNote: z.string().nullable(),
@@ -77,6 +82,8 @@ export const ReviewTransitionInputSchema = z
     reason: z.string().max(300).optional(),
     /** Optimistic concurrency: the revision the admin reviewed. */
     expectedRevisionId: UuidSchema.optional(),
+    /** Questions only, on approve: test/demo shortcuts must send 'automated_test'. Default 'editor_review'. */
+    approvalKind: ApprovalKindSchema.optional(),
   })
   .strict();
 export type ReviewTransitionInput = z.infer<typeof ReviewTransitionInputSchema>;
@@ -158,6 +165,8 @@ export const AdminSessionQuestionSchema = z.object({
   closesAt: IsoDateTimeSchema.nullable(),
   /** True when the question's current approved revision still matches the pinned one. */
   revisionStillValid: z.boolean(),
+  /** How the pinned (still current) revision was approved; 'automated_test' is not human review. */
+  approvalKind: ApprovalKindSchema.nullable(),
 });
 
 export const AdminSessionSchema = QuizSessionSummarySchema.extend({

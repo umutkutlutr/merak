@@ -1,6 +1,7 @@
 /**
  * Idempotent local seed. Loads ÖRNEK TEST İÇERİĞİ and local test accounts.
- *  - Refuses to run when NODE_ENV=production.
+ *  - Refuses to run when NODE_ENV=production, and refuses to create staff accounts with the public default
+ *    password when the Auth server is not on this machine.
  *  - Cards/Radar picks are published as seed samples (visible badge; audit action content.seed_publish).
  *  - Questions stay in DRAFT: auto-loading is not editorial approval.
  * Usage: pnpm --filter @merak/api db:seed
@@ -31,6 +32,13 @@ export interface SeedSummary {
 export async function runSeed(opts: { quiet?: boolean; skipUsers?: boolean } = {}): Promise<SeedSummary> {
   const env = getEnv();
   if (env.NODE_ENV === 'production') throw new Error('Seed refuses to run in production');
+  // Staff accounts get a password published in the README unless SEED_PASSWORD is set. That is only
+  // acceptable against an Auth server on this machine; refuse any other host instead of failing open.
+  const authHost = new URL(env.SUPABASE_AUTH_URL).hostname;
+  const localAuth = ['localhost', '127.0.0.1', '::1', '[::1]'].includes(authHost);
+  if (!opts.skipUsers && !localAuth && !env.SEED_PASSWORD) {
+    throw new Error(`Seed refuses to create staff accounts with the public default password on a non-local Auth server (${authHost}); set SEED_PASSWORD`);
+  }
   const password = env.SEED_PASSWORD ?? 'Merak-Local-123';
   const log = (msg: string) => {
     if (!opts.quiet) console.log(`[seed] ${msg}`);

@@ -17,6 +17,8 @@ export const SCHEDULER_LOCK_KEY = 7_283_001;
 export class SchedulerLeaderService implements OnModuleDestroy {
   private client: PoolClient | null = null;
   private leader = false;
+  /** A lock connection that stops answering (silent network loss) must not freeze the scheduler. */
+  verifyTimeoutMs = 3_000;
 
   constructor(
     @Inject(PG_POOL) private readonly pool: Pool,
@@ -67,11 +69,17 @@ export class SchedulerLeaderService implements OnModuleDestroy {
       this.leader = false;
       return false;
     }
+    let timer: NodeJS.Timeout | undefined;
     try {
-      const res = await this.client.query<{ held: boolean }>(
+      const query = this.client.query<{ held: boolean }>(
         "select exists(select 1 from pg_locks where locktype = 'advisory' and objid = $1 and pid = pg_backend_pid() and granted) as held",
         [SCHEDULER_LOCK_KEY],
       );
+      query.catch(() => undefined); // a late rejection after a timeout must not become an unhandled rejection
+      const timeout = new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`scheduler lock verification timed out after ${this.verifyTimeoutMs} ms`)), this.verifyTimeoutMs);
+      });
+      const res = await Promise.race([query, timeout]);
       this.leader = res.rows[0]?.held === true;
     } catch (err) {
       this.logger.error({ err }, 'scheduler lock verification failed; leadership lost', 'SchedulerLeader');
@@ -79,10 +87,12 @@ export class SchedulerLeaderService implements OnModuleDestroy {
       const dead = this.client;
       this.client = null;
       try {
-        dead?.release(err as Error);
+        dead?.release(err as Error); // destroys the connection, which frees the advisory lock server-side
       } catch {
         /* ignore */
       }
+    } finally {
+      clearTimeout(timer);
     }
     return this.leader;
   }
