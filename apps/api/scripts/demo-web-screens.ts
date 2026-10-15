@@ -73,6 +73,13 @@ async function main() {
     if (s === 'review') { await api(editor, 'POST', `/admin/questions/${q.id}/approve`, { reason: 'TEST ONAYI — otomatik web demo, insan incelemesi değildir' }); s = 'approved'; }
     if (s === 'approved') await api(editor, 'POST', `/admin/questions/${q.id}/publish`, {});
   }
+  // The app's Yarış tab shows the earliest active session. Cancel leftovers (e.g. from an aborted
+  // earlier run) so both browsers and the admin view refer to the session this run schedules.
+  const open = await api<{ items: Array<{ id: string; status: string }> }>(admin, 'GET', '/admin/sessions');
+  for (const s of open.items.filter((x) => ['scheduled', 'lobby', 'live'].includes(x.status))) {
+    await api(admin, 'POST', `/admin/sessions/${s.id}/cancel`, { reason: 'Web demo öncesi temizlik: önceki demo oturumu' });
+    step(`cancelled leftover session ${s.id} (${s.status})`);
+  }
   const scheduledStartAt = new Date(Date.now() + START_IN_MS).toISOString();
   const session = await api<{ id: string }>(admin, 'POST', '/admin/sessions', { title: 'Web demo — ödülsüz test', scheduledStartAt, questionIds: pick.map((q) => q.id), rulesOverride: { questionDurationMs: QUESTION_MS, revealDurationMs: REVEAL_MS, lobbyLeadMs: LOBBY_LEAD_MS }, reason: 'demo:web' });
   step(`session ${session.id} scheduled for ${scheduledStartAt}`);
@@ -93,7 +100,9 @@ async function main() {
     await a.getByTestId('discover-screen').waitFor();
     await shot(a, '02-discover');
     // Scope to the active screen: inactive tab screens stay mounted underneath on web.
-    await a.getByTestId('discover-screen').locator('[data-testid^="content-card-"]').first().click();
+    // Pick a card this user has not completed yet (the demo may run again on the same database;
+    // for a completed card the 'Tamamladım' button is intentionally disabled).
+    await a.getByTestId('discover-screen').locator('[data-testid^="content-card-"]').filter({ hasNotText: 'Tamamlandı' }).first().click();
     await a.getByTestId('content-detail').waitFor();
     await shot(a, '03-content-detail');
     await a.getByTestId('content-complete').click();
@@ -178,6 +187,7 @@ async function main() {
     step('admin screens captured');
 
     const adminView = await api<{ status: string; answerCount: number; participantCount: number }>(admin, 'GET', `/admin/sessions/${session.id}`);
+    if (adminView.status !== 'completed' || adminView.participantCount !== 2) throw new Error(`admin view mismatch: ${adminView.status}, participants ${adminView.participantCount}`);
     summary.adminView = adminView;
     summary.finishedAt = new Date().toISOString();
     fs.writeFileSync(path.join(OUT, 'web-demo-summary.json'), JSON.stringify(summary, null, 2));
