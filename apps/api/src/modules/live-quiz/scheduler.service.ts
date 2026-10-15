@@ -53,7 +53,10 @@ export class SchedulerService implements OnApplicationBootstrap, OnModuleDestroy
     const applied: Transition[] = [];
     try {
       this.ticks += 1;
-      if (!this.leader.isLeader) {
+      if (!(await this.leader.verify())) {
+        // Not (or no longer) the lock holder: never advance. Retry acquisition every ~10 s.
+        // A process that gains leadership here does NOT run restart recovery, so it cannot cancel a
+        // healthy session another process was running; it simply continues from the persisted state.
         if (this.ticks % 40 === 0) await this.leader.tryAcquire();
         return [];
       }

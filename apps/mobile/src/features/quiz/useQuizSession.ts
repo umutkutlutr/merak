@@ -241,6 +241,8 @@ export function useQuizSession(sessionId: string) {
         try {
           const receipt = await api<AnswerReceipt>('POST', `/quiz/sessions/${sessionId}/answers`, body);
           setAnswer(q.sessionQuestionId, { status: 'accepted', optionId: receipt.optionId, receipt, message: receipt.replayed ? 'Cevabın zaten kayıtlıydı.' : null });
+          // Accepted after the reveal reached us (sent before close, processed after): refresh the reveal.
+          if (stateRef.current.phase !== 'question') socketRef.current?.resync();
           return;
         } catch (e) {
           if (e instanceof ApiError && e.code !== 'NETWORK') {

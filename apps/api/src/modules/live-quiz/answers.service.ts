@@ -42,6 +42,17 @@ export class AnswersService {
   }
 
   private async submitInTx(tx: Tx, userId: string, sessionId: string, input: AnswerSubmitInput, receivedAt: Date): Promise<AnswerReceipt> {
+    // 0) Serialise with session transitions. Every engine transition (close/reveal, advance, complete,
+    //    cancel) takes FOR UPDATE on this row, which conflicts with FOR KEY SHARE. So an answer either
+    //    commits before a transition reads receipts (and is counted), or it runs after the transition
+    //    committed and sees the new status. Lock order (session -> participant) matches join().
+    const [session] = await tx
+      .select({ rules: quizSessions.rules, status: quizSessions.status })
+      .from(quizSessions)
+      .where(eq(quizSessions.id, sessionId))
+      .for('key share');
+    if (!session) throw new AppError('NOT_FOUND');
+
     // Serialise submissions of the same participant.
     const [participant] = await tx
       .select()
@@ -78,17 +89,24 @@ export class AnswersService {
       .limit(1);
     if (existing) throw new AppError('ANSWER_ALREADY_ACCEPTED', undefined, { receiptId: existing.id });
 
-    // 3) Window — pinned opensAt/closesAt vs trusted receivedAt. Status alone is not enough (scheduler lag).
+    // 3) Session must still be running. (Replays above are answered even for finished sessions.)
+    if (session.status === 'cancelled') throw new AppError('SESSION_CANCELLED');
+    if (session.status === 'completed') throw new AppError('SESSION_COMPLETED');
+    if (session.status !== 'live') throw new AppError('QUESTION_NOT_OPEN');
+
+    // 4) Window — decided ONLY by the pinned opensAt/closesAt and the trusted receivedAt
+    //    (M0 rule: opensAt <= receivedAt < closesAt). A request received before closesAt is accepted
+    //    even if its transaction runs after the scheduler already closed/revealed the question;
+    //    receivedAt is stamped after the full body arrived, so the client chose before the reveal.
     if (sq.status === 'pending' || !sq.opensAt || !sq.closesAt) throw new AppError('QUESTION_NOT_OPEN');
-    if (sq.status === 'closed' || sq.status === 'revealed') throw new AppError('QUESTION_CLOSED');
     const w = answerWindow(receivedAt.getTime(), sq.opensAt.getTime(), sq.closesAt.getTime());
     if (w === 'before_open') throw new AppError('QUESTION_NOT_OPEN');
     if (w === 'closed') throw new AppError('QUESTION_CLOSED');
 
-    // 4) Late-join eligibility.
+    // 5) Late-join eligibility.
     if (sq.position < participant.eligibleFromPosition) throw new AppError('NOT_ELIGIBLE_FOR_QUESTION');
 
-    // 5) Option must belong to the pinned revision.
+    // 6) Option must belong to the pinned revision.
     const [option] = await tx
       .select({ id: questionOptions.id })
       .from(questionOptions)
@@ -96,9 +114,7 @@ export class AnswersService {
       .limit(1);
     if (!option) throw new AppError('OPTION_INVALID');
 
-    // 6) Score with the session's frozen rules.
-    const [session] = await tx.select({ rules: quizSessions.rules, status: quizSessions.status }).from(quizSessions).where(eq(quizSessions.id, sessionId)).limit(1);
-    if (!session || session.status !== 'live') throw new AppError('QUESTION_CLOSED');
+    // 7) Score with the session's frozen rules.
     const rules = session.rules as SessionRules;
     const correctOptionId = await this.questions.answerKey(sq.questionRevisionId, tx);
     const elapsedMs = receivedAt.getTime() - sq.opensAt.getTime();

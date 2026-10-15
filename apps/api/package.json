@@ -2,7 +2,7 @@
   "name": "@merak/api",
   "version": "0.0.1",
   "private": true,
-  "description": "Merak API \u2014 NestJS modular monolith (auth, content, learning, live quiz authority, admin).",
+  "description": "Merak API — NestJS modular monolith (auth, content, learning, live quiz authority, admin).",
   "scripts": {
     "prebuild": "pnpm --filter @merak/contracts build",
     "build": "nest build",
@@ -13,13 +13,14 @@
     "lint": "eslint \"src/**/*.ts\" \"test/**/*.ts\"",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate.ts",
-    "db:seed": "nest build && node dist/seed/seed.js",
+    "db:seed": "pnpm run build && node dist/seed/seed.js",
     "pretest": "pnpm --filter @merak/contracts build",
     "test": "vitest run",
     "test:unit": "vitest run --project unit",
     "test:integration": "vitest run --project integration",
     "test:watch": "vitest",
-    "demo:two-users": "tsx scripts/demo-two-users.ts"
+    "demo:two-users": "pnpm --filter @merak/contracts build && tsx scripts/demo-two-users.ts",
+    "demo:web": "pnpm --filter @merak/contracts build && tsx scripts/demo-web-screens.ts"
   },
   "dependencies": {
     "@merak/contracts": "workspace:*",

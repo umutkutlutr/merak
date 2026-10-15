@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { SignJWT } from 'jose';
+import { exportJWK, generateKeyPair, SignJWT } from 'jose';
+import http from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { randomUUID } from 'node:crypto';
 import { loadEnv } from '../../config/env.js';
 import { JwtVerifier } from './jwt-verifier.js';
@@ -53,5 +55,40 @@ describe('JwtVerifier (HS256 mode)', () => {
     const payload = Buffer.from(JSON.stringify({ sub: randomUUID(), iss: ISS, aud: 'authenticated', exp: Math.floor(Date.now() / 1000) + 300 })).toString('base64url');
     expect(await codeOf(verifier.verify(`${header}.${payload}.`))).toBe('AUTH_INVALID_TOKEN');
     expect(await codeOf(verifier.verify('garbage'))).toBe('AUTH_INVALID_TOKEN');
+  });
+});
+
+describe('JwtVerifier (JWKS mode — hosted Supabase asymmetric keys)', () => {
+  it('accepts an ES256 token whose kid is in the JWKS; rejects a foreign key and an HS256 token', async () => {
+    const { privateKey, publicKey } = await generateKeyPair('ES256');
+    const other = await generateKeyPair('ES256');
+    const jwk = { ...(await exportJWK(publicKey)), kid: 'k1', alg: 'ES256', use: 'sig' };
+    const server = http.createServer((_req, res) => {
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({ keys: [jwk] }));
+    });
+    await new Promise<void>((r) => server.listen(0, '127.0.0.1', () => r()));
+    const port = (server.address() as AddressInfo).port;
+    try {
+      const jwksEnv = loadEnv({
+        NODE_ENV: 'test',
+        DATABASE_URL: 'postgres://x:y@localhost:1/db',
+        SUPABASE_AUTH_URL: ISS,
+        SUPABASE_JWT_SECRET: '',
+        SUPABASE_JWKS_URL: `http://127.0.0.1:${port}/.well-known/jwks.json`,
+        AUTH_JWT_ISSUER: ISS,
+        AUTH_JWT_AUDIENCE: 'authenticated',
+      });
+      const v = new JwtVerifier(jwksEnv);
+      expect(v.mode).toBe('jwks');
+      const sub = randomUUID();
+      const good = await new SignJWT({ role: 'authenticated' }).setProtectedHeader({ alg: 'ES256', kid: 'k1' }).setSubject(sub).setIssuer(ISS).setAudience('authenticated').setIssuedAt().setExpirationTime('5m').sign(privateKey);
+      expect((await v.verify(good)).userId).toBe(sub);
+      const foreign = await new SignJWT({}).setProtectedHeader({ alg: 'ES256', kid: 'k1' }).setSubject(sub).setIssuer(ISS).setAudience('authenticated').setExpirationTime('5m').sign(other.privateKey);
+      expect(await codeOf(v.verify(foreign))).toBe('AUTH_INVALID_TOKEN');
+      expect(await codeOf(v.verify(await sign({ sub })))).toBe('AUTH_INVALID_TOKEN'); // HS256 not accepted in JWKS mode
+    } finally {
+      server.close();
+    }
   });
 });

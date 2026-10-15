@@ -1,15 +1,13 @@
 import 'reflect-metadata';
 import { randomUUID } from 'node:crypto';
 import type { AddressInfo } from 'node:net';
-import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
-import express from 'express';
 import { SignJWT } from 'jose';
 import { Client } from 'pg';
 import { eq } from 'drizzle-orm';
 import { io, type Socket } from 'socket.io-client';
 import type { AdminQuestion, AdminSession, SessionSnapshot } from '@merak/contracts';
-import { AppModule } from '../src/app.module.js';
+import { createApp } from '../src/main.js';
 import { ClockService } from '../src/common/clock.js';
 import { DB, PG_POOL } from '../src/db/db.module.js';
 import type { Db } from '../src/db/client.js';
@@ -30,10 +28,9 @@ export interface TestApp {
   close(): Promise<void>;
 }
 
+/** Uses the SAME bootstrap as production (main.ts createApp): body parser, limits, CORS, guards, middleware order. */
 export async function createTestApp(): Promise<TestApp> {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule, { logger: false, bodyParser: false, abortOnError: false });
-  app.use(express.json({ limit: '32kb' }));
-  app.enableCors({ origin: true });
+  const app = await createApp();
   await app.listen(0);
   const port = (app.getHttpServer().address() as AddressInfo).port;
   const clock = app.get(ClockService);

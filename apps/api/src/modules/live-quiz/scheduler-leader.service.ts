@@ -30,11 +30,19 @@ export class SchedulerLeaderService implements OnModuleDestroy {
   async tryAcquire(): Promise<boolean> {
     if (this.leader) return true;
     if (!this.client) {
-      this.client = await this.pool.connect();
-      this.client.on('error', (err) => {
+      const client = await this.pool.connect();
+      this.client = client;
+      client.on('error', (err) => {
+        // Connection died (network, pg_terminate_backend, server restart): the advisory lock is gone
+        // with it, so this process must stop advancing sessions immediately.
         this.logger.error({ err }, 'scheduler lock connection error; leadership lost', 'SchedulerLeader');
         this.leader = false;
-        this.client = null;
+        if (this.client === client) this.client = null;
+        try {
+          client.release(err);
+        } catch {
+          /* already released */
+        }
       });
     }
     const res = await this.client.query<{ locked: boolean }>('select pg_try_advisory_lock($1) as locked', [
@@ -46,6 +54,35 @@ export class SchedulerLeaderService implements OnModuleDestroy {
         'another API process holds the live-quiz scheduler lock; this process will NOT advance sessions',
         'SchedulerLeader',
       );
+    }
+    return this.leader;
+  }
+
+  /**
+   * Confirms on the lock connection that this backend still holds the advisory lock. Called before
+   * every scheduler pass so leadership loss is detected even if no 'error' event was delivered.
+   */
+  async verify(): Promise<boolean> {
+    if (!this.leader || !this.client) {
+      this.leader = false;
+      return false;
+    }
+    try {
+      const res = await this.client.query<{ held: boolean }>(
+        "select exists(select 1 from pg_locks where locktype = 'advisory' and objid = $1 and pid = pg_backend_pid() and granted) as held",
+        [SCHEDULER_LOCK_KEY],
+      );
+      this.leader = res.rows[0]?.held === true;
+    } catch (err) {
+      this.logger.error({ err }, 'scheduler lock verification failed; leadership lost', 'SchedulerLeader');
+      this.leader = false;
+      const dead = this.client;
+      this.client = null;
+      try {
+        dead?.release(err as Error);
+      } catch {
+        /* ignore */
+      }
     }
     return this.leader;
   }

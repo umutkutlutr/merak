@@ -3,6 +3,9 @@
  * Creates a throwaway database (merak_test), the roles the privilege tests need, the `app` schema
  * owned by app_api, then applies the real SQL migrations as app_api — the same path as production.
  */
+// Must run before any app module is imported (app.module/gateway read the env at import time).
+process.env.NODE_ENV = 'test';
+process.env.LOG_LEVEL = 'silent';
 import 'dotenv/config';
 import { beforeAll } from 'vitest';
 import { Client } from 'pg';

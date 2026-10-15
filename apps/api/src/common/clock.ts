@@ -15,6 +15,8 @@ export class ClockService {
   }
   /** Test-only: freeze the process clock at an exact instant (null = wall clock). */
   __freezeForTests(atMs: number | null): void {
+    // Not reachable over HTTP/WS; refuse outright in production builds as defence in depth.
+    if (process.env.NODE_ENV === 'production') throw new Error('Clock freezing is disabled in production');
     this.frozenAt = atMs;
   }
 }
