@@ -1,32 +1,32 @@
 {
-  "startedAt": "2026-10-15T22:19:36.541Z",
+  "startedAt": "2026-10-15T22:57:11.660Z",
   "environment": "Expo web (react-native-web) in headless Chromium via Playwright — NOT native",
   "steps": [
-    "session fd5210fa-a4bf-483e-ae9f-11ab7de0a73e scheduled for 2026-10-15T22:20:51.681Z",
+    "session f4def35d-b38a-426f-9dcd-949cdd70e196 scheduled for 2026-10-15T22:58:26.815Z",
     "two independent browser contexts logged in through the web UI (ayse, mehmet)",
     "ayse completed and saved a card (XP once; toast shown)",
     "both joined; waiting room shows server-timed countdown",
-    "session completed in both browsers (ayse 0 puan, mehmet 99 puan)",
+    "session completed in both browsers (ayse 197 puan, mehmet 97 puan)",
     "ayse opened the related card from the result screen",
     "admin screens captured"
   ],
-  "sessionId": "fd5210fa-a4bf-483e-ae9f-11ab7de0a73e",
+  "sessionId": "f4def35d-b38a-426f-9dcd-949cdd70e196",
   "results": {
-    "ayse": "0 puan",
-    "mehmet": "99 puan",
+    "ayse": "197 puan",
+    "mehmet": "97 puan",
     "answers": {
       "ayse": 5,
       "mehmet": 5
     }
   },
   "adminView": {
-    "id": "fd5210fa-a4bf-483e-ae9f-11ab7de0a73e",
+    "id": "f4def35d-b38a-426f-9dcd-949cdd70e196",
     "title": "Web demo — ödülsüz test",
     "status": "completed",
     "isTest": true,
     "prizeMode": "none",
-    "scheduledStartAt": "2026-10-15T22:20:51.681Z",
-    "lobbyOpensAt": "2026-10-15T22:20:26.681Z",
+    "scheduledStartAt": "2026-10-15T22:58:26.815Z",
+    "lobbyOpensAt": "2026-10-15T22:58:01.815Z",
     "questionCount": 5,
     "rules": {
       "points": {
@@ -44,73 +44,78 @@
     "currentQuestionPosition": 5,
     "cancelledReason": null,
     "cancelledAt": null,
-    "completedAt": "2026-10-15T22:21:46.844Z",
+    "completedAt": "2026-10-15T22:59:22.138Z",
     "participantCount": 2,
     "questions": [
       {
-        "sessionQuestionId": "4ca05c4f-071c-41ee-8eea-117e05b9c708",
+        "sessionQuestionId": "15db4df8-08a5-4eb5-bdd1-d806a53cda81",
         "position": 1,
         "questionId": "b95e25db-f753-46b7-af3d-bbbc2ac099fd",
         "questionRevisionId": "5f3e350d-115d-46cb-96f2-64242f929526",
         "revisionVersion": 1,
         "prompt": "İki farklı bilim dalında Nobel Ödülü alan ilk kişi kimdir?",
         "status": "revealed",
-        "opensAt": "2026-10-15T22:20:51.754Z",
-        "closesAt": "2026-10-15T22:20:59.754Z",
-        "revisionStillValid": true
+        "opensAt": "2026-10-15T22:58:27.024Z",
+        "closesAt": "2026-10-15T22:58:35.024Z",
+        "revisionStillValid": true,
+        "approvalKind": "automated_test"
       },
       {
-        "sessionQuestionId": "b91bb7ac-a06a-41a5-ae32-39ae982791ad",
+        "sessionQuestionId": "62a76791-78e2-4635-ab22-694ea6a3ca66",
         "position": 2,
         "questionId": "8d88dc52-79c7-4198-bf16-7cd88dacd22e",
         "questionRevisionId": "6f960924-48de-44eb-bd0e-8f6771d78da5",
         "revisionVersion": 1,
         "prompt": "DNA’nın çift sarmal yapısını öneren makale hangi yıl yayımlandı?",
         "status": "revealed",
-        "opensAt": "2026-10-15T22:21:02.774Z",
-        "closesAt": "2026-10-15T22:21:10.774Z",
-        "revisionStillValid": true
+        "opensAt": "2026-10-15T22:58:38.040Z",
+        "closesAt": "2026-10-15T22:58:46.040Z",
+        "revisionStillValid": true,
+        "approvalKind": "automated_test"
       },
       {
-        "sessionQuestionId": "c37cc532-ff39-4ed9-ae4f-7de83443b98a",
+        "sessionQuestionId": "33307582-3e37-4892-8437-497efda9fc90",
         "position": 3,
         "questionId": "b14fc3c5-2cbf-476e-a066-b188584e1664",
         "questionRevisionId": "d549033f-9bf1-4913-8885-ced818367c77",
         "revisionVersion": 1,
         "prompt": "Gazelde şairin mahlasını söylediği son beyte ne ad verilir?",
         "status": "revealed",
-        "opensAt": "2026-10-15T22:21:13.796Z",
-        "closesAt": "2026-10-15T22:21:21.796Z",
-        "revisionStillValid": true
+        "opensAt": "2026-10-15T22:58:49.089Z",
+        "closesAt": "2026-10-15T22:58:57.089Z",
+        "revisionStillValid": true,
+        "approvalKind": "automated_test"
       },
       {
-        "sessionQuestionId": "72cbe698-29f1-46ce-aef2-074cf648bef2",
+        "sessionQuestionId": "52f78a88-2f9a-4033-81c3-6f4aa39e9634",
         "position": 4,
         "questionId": "3affdd71-225b-48e3-aa2c-2f638fe5e812",
         "questionRevisionId": "d4922d2d-ebce-4fd9-a977-fcc970653bf4",
         "revisionVersion": 1,
         "prompt": "“Kürk Mantolu Madonna” romanının yazarı kimdir?",
         "status": "revealed",
-        "opensAt": "2026-10-15T22:21:24.813Z",
-        "closesAt": "2026-10-15T22:21:32.813Z",
-        "revisionStillValid": true
+        "opensAt": "2026-10-15T22:59:00.102Z",
+        "closesAt": "2026-10-15T22:59:08.102Z",
+        "revisionStillValid": true,
+        "approvalKind": "automated_test"
       },
       {
-        "sessionQuestionId": "ee1c4409-441f-4ae7-921a-2f31130fc50f",
+        "sessionQuestionId": "f238d9dd-3859-44cf-ad28-6c531607b621",
         "position": 5,
         "questionId": "0283072f-a34e-413b-b9f1-72daa1611cbb",
         "questionRevisionId": "417dc210-6127-46e3-acd8-3900b02e2b98",
         "revisionVersion": 1,
         "prompt": "Kapadokya’daki peribacaları ağırlıklı olarak hangi kaya türünden oluşur?",
         "status": "revealed",
-        "opensAt": "2026-10-15T22:21:35.827Z",
-        "closesAt": "2026-10-15T22:21:43.827Z",
-        "revisionStillValid": true
+        "opensAt": "2026-10-15T22:59:11.124Z",
+        "closesAt": "2026-10-15T22:59:19.124Z",
+        "revisionStillValid": true,
+        "approvalKind": "automated_test"
       }
     ],
     "createdBy": "f1f46282-7c97-4b4d-91f6-7fd7207b1d4e",
-    "createdAt": "2026-10-15T22:19:36.684Z",
+    "createdAt": "2026-10-15T22:57:11.818Z",
     "answerCount": 10
   },
-  "finishedAt": "2026-10-15T22:22:37.042Z"
+  "finishedAt": "2026-10-15T22:59:28.118Z"
 }

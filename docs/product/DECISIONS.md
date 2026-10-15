@@ -1,6 +1,6 @@
 # Karar Kaydı — M0
 
-Son güncelleme: 2026-10-15. Üç sınıf: **KESİN** (kurucu/brief kararı), **M0_DENEY_AYARI** (deneme ayarı; nihai ürün kararı değildir), **AÇIK** (karar bekliyor). Teknik uygulama tercihleri ayrı bölümdedir.
+Son güncelleme: 2026-10-15 (M0 kapanışı). Üç sınıf: **KESİN** (kurucu/brief kararı), **M0_DENEY_AYARI** (deneme ayarı; nihai ürün kararı değildir), **AÇIK** (karar bekliyor). Teknik uygulama tercihleri ayrı bölümdedir.
 
 ## 1. KESİN — ürün özü (brief’ten)
 
@@ -14,7 +14,7 @@ Son güncelleme: 2026-10-15. Üç sınıf: **KESİN** (kurucu/brief kararı), **
 | K-6 | Premium, güçlü tipografili, yetişkinlere de hitap eden deneyim; küçümseyen dil yok. | Brief §2.6. Token sistemi `apps/mobile/src/theme/tokens.ts`. |
 | K-7 | Maddi ödüllü yayın; hukuki/mağaza uygunluğu ve ödül operasyonu doğrulanmadan açılmaz. **M0 yalnızca ödülsüz yerel testtir.** Bu bir hukuki değerlendirme değildir. | Brief §2.7. Mobilde ve admin’de “ödülsüz test” etiketi görünür. |
 | K-8 | Ana bilgi mimarisi: Ana Sayfa, Keşfet, Yarış, Kültür, Profil (M0 tasarım varsayımı; kullanılabilirlik bulgusuyla değişebilir). | Brief §2.8. |
-| K-9 | **Çalışma adı: Merak.** Kurucu adlandırmayı devretti (“app ismini sen koy”). Repo adı `merak`. Türkçede “merak” ürünün özünü (meraklı öğrenme) taşır; Büyükayı’daki Merak yıldızı yön gösterici çağrışımı yapar. Marka/tescil denetimi yapılmadı → bkz. A-1. | Kurucu talimatı (2026-10-14). Brief §2.9’daki `culture-platform` önerisi bu talimatla geçersizleşti. |
+| K-9 | *(Kapanışta düzeltildi; artık kesin karar değil.)* Ürün adı açık bir karardır: özgün brief §28 “Uygulamanın adı” ve “Son marka konumlandırması”nı kesinleşmemiş kararlar arasında sayar. **“Merak” yalnızca çalışma adıdır**: kurucunun “app ismini sen koy” talimatıyla geliştirme için seçildi, repo adı `merak`. Marka/tescil/alan adı taraması ve kurucunun marka onayı yok → A-1. | Kurucu talimatı (2026-10-14); brief §28. |
 | K-10 | M1+ aşamaları ve yedi yan modül bu görevde başlatılmaz; veri ilişkileri konu/kategori/içerik kimlikleriyle genişlemeye uygun kurulur. | Brief §3. |
 
 ## 2. M0_DENEY_AYARI — deneme kuralları (nihai ürün kararı değildir)
@@ -28,9 +28,9 @@ Oturum oluşturulurken bu kurallar `quiz_sessions.rules` (JSON) ve `rules_versio
 | Soru sayısı | 5 | `rules.questionCount = 5`; API tam 5 soru ister (`QUESTION_COUNT_INVALID`). |
 | Soru süresi | 12 sn (okunabilirlik/erişilebilirlik deneyi bekliyor) | `rules.questionDurationMs = 12000`. |
 | Reveal süresi | 6 sn | `rules.revealDurationMs = 6000`. |
-| Lobi | Başlangıçtan 60 sn önce açılır | `rules.lobbyLeadMs = 60000`. |
+| Lobi | Başlangıçtan 60 sn önce açılır (brief §6.2 örneği: 20.55’te, yani 5 dk önce; M0 test kolaylığı için kısa) | `rules.lobbyLeadMs = 60000`. |
 | Puan | Doğru: `round(60 + 40 × (1 − elapsedMs/durationMs))`, 60–100; yanlış/cevapsız/geçersiz 0 | `packages/contracts/src/scoring.ts`; sunucu tek otorite; birim test. |
-| Cevap aralığı | `opensAt <= receivedAt < closesAt`; sınırda ve sonrasında ret | `answerWindow()`; `receivedAt` middleware’de sunucu saatiyle alınır. Test K05. |
+| Cevap aralığı | `opensAt <= receivedAt < closesAt`; sınırda ve sonrasında ret (brief §6.3 tablosundaki “12 sn → 60 puan” satırı M0’da 11,999 sn’ye karşılık gelir; tam 12 sn kapalıdır). Kapanıştan önce alınıp reveal’den sonra işlenen istek kabul edilir. **Bilinçli sınır:** oturum tamamlandıktan sonra (son kapanış + 6 sn) işlenen istek `SESSION_COMPLETED` alır; sonuçlar tamamlanmada kesinleşir. | `answerWindow()`; `receivedAt` gövde alındıktan sonra middleware’de sunucu saatiyle alınır. Test K05, `08-closeout-risks` R5, R1/R10. |
 | Değişiklik | İlk geçerli kabulden sonra cevap değiştirilemez | `ANSWER_ALREADY_ACCEPTED`; DB tekil kısıtı. Test K06. |
 | Geç katılım | Katıldığı anda açık olan soru dâhil, o ana kadar açılmış sorular 0; sonraki sorudan yarışır | `eligible_from_position = currentPosition + 1`; `NOT_ELIGIBLE_FOR_QUESTION`. **Yorum notu:** brief’teki “henüz açılmamış sorulardan itibaren” ifadesi, açık soruya sonradan dahil olmayı kapsamayacak şekilde yorumlandı. Alternatif (kalan süreyle açık soruya girmek) tek satırlık değişikliktir → A-4. |
 | Yeniden bağlantı | Aynı kullanıcı önceki katılımıyla döner; açık soruda yalnızca kalan ortak süre | `opensAt` ortak; katılım cihazda saklanan token ile devam eder. Test K08. |
@@ -42,6 +42,9 @@ Oturum oluşturulurken bu kurallar `quiz_sessions.rules` (JSON) ve `rules_versio
 | Günlük görev | “Bugün 3 farklı içerik tamamla”; ödül/puan vermez | `daily_task_completions`. Test K11. |
 | Hız puanı ve gecikme | Sunucu alım zamanı esas; istemci `clientSentAt/clientRttMs` yalnızca tanılama için saklanır, puana etkisi yoktur | Test K07. Gecikme telafisi M1 adalet/saldırı senaryolarıyla değerlendirilecek. |
 | Soru havuzu kuralı | Oturum yalnızca `published` durumundaki ve onaylı revizyonu güncel olan soruları sabitler; `approved` (onaylı ama havuza verilmemiş) soru planlanamaz | `resolveSchedulable()`. Test K03. |
+| Personel katılımı | Editör ve yönetici hesapları oturuma oyuncu olarak katılamaz (`STAFF_CANNOT_PLAY`): cevap anahtarlarını ve oturum içeriğini görebilirler. Ürün kararı değil, geri alınabilir bütünlük varsayımı. | `SessionsService.join`. Test `09-closeout-audit` R2. |
+| Varsayılan kullanıcı adı | Rastgele `oyuncu_xxxxxx`; e-postadan türetilmez (sıralamada başkalarına görünür, KVKK). Kullanıcı `PATCH /me` ile değiştirir. | `ProfilesService.ensureProfile`. Test K02. |
+| Onay kaynağı | Her soru onayı `editor_review` (bir editör tek tek onayladı) veya `automated_test` (toplu buton, demo betiği, test) olarak kaydedilir; ikincisi insan incelemesi sayılmaz ve admin’de kırmızı “TEST ONAYI” olarak görünür. | `questions.approval_kind` + CHECK. Test `09-closeout-audit` R6. |
 | Seed içerik | Kartlar/Radar önerileri yerel seed ile `published` ancak `production_method = seed_sample`, `source_verified = false`, denetim kaydı `content.seed_publish` (aktör: sistem). Bu bir editör onayı değildir. Sorular `draft` kalır. | `src/seed/seed.ts`; mobilde “Örnek test içeriği” rozeti. |
 
 ## 3. AÇIK — kurucu kararı bekleyenler
@@ -54,6 +57,7 @@ Oturum oluşturulurken bu kurallar `quiz_sessions.rules` (JSON) ve `rules_versio
 | A-4 | Geç katılım yorumu (bkz. yukarıdaki not) | Kural tek yerde (`eligibleFromPosition`) değişir. |
 | A-5 | Maddi ödüllü yayın için hukuki/mağaza/ödül operasyonu değerlendirmesi | M0 kapsam dışı; otomatik takvim adımı değildir. |
 | A-6 | İlgi alanı seçiminin ürün rolü (kişiselleştirme mi, yalnızca profil mi) | M0’da serbest etiket listesi olarak saklanır; kullanılmaz. |
+| A-7 | Daha önce yayınlanmış (reveal edilmiş) bir sorunun yeni bir oturumda yeniden kullanılması | M0 izin verir (test kolaylığı). Önceki oturuma katılanlar cevabı bilir; ödüllü yayında soru tekrarı adaleti doğrudan etkiler. Kapanış incelemesinde açık karar olarak eklendi. |
 
 ## 4. Teknik uygulama tercihleri (gerekçeli)
 

@@ -1,4 +1,4 @@
-# Lint / typecheck / critical tests / build. NOT yet executed remotely — do not treat as green until a run exists.
+# Lint / typecheck / critical tests / build. Runs on every push; GoTrue is absent here, so the real-login test self-skips.
 name: ci
 on:
   push:

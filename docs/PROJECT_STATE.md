@@ -1,29 +1,30 @@
 # Proje Durumu
 
-Son güncelleme: 2026-10-15 · Dal: `claude/wonderful-johnson-25mox5` · Sonraki Claude oturumu önce bunu okusun.
+Son güncelleme: 2026-10-15 (M0 kapanışı) · Dal: `claude/wonderful-johnson-25mox5` · Sonraki Claude oturumu önce bunu okusun.
 
 ## Son tamamlanan adım
 
-M0 teslimi: monorepo, Docker’sız yerel stack (PostgreSQL 16 + GoTrue), NestJS API (içerik/öğrenme/soru bankası/canlı yarışma/analitik/denetim), Expo 57 mobil uygulaması, Vite admin paneli, K01–K12 testleri, iki kullanıcılı API/WS ve web (Playwright) demoları, teslim belgeleri. Ayrıntı: `docs/reports/M0_DELIVERY_REPORT.md`.
+M0 kapanışı (`docs/reports/M0_CLOSEOUT_REPORT.md`): yedek bundle, özgün brief eşlemesi, sürüm ve kurulum doğrulaması, yedi riskin incelenmesi ve 15 hatanın düzeltilmesi, CI ve inceleme paketi. Test edilen kod commit’i `2618234`; migration `0002` (`question_revisions.topic_id/related_content_item_id`, `questions.approval_kind`). Claude Design brief’i: `docs/design/CLAUDE_DESIGN_PROMPT.md`. M1 başlamadı; nihai kabul ürün sahibinde.
 
 ## Doğrulama durumu (özet)
 
 | Alan | Durum |
 |---|---|
-| Birim testleri (23) + gerçek PostgreSQL entegrasyon testleri (48) | GEÇTİ — `pnpm --filter @merak/api test` |
-| API/WS iki kullanıcılı demo | GEÇTİ — `pnpm demo:two-users` |
-| Web (react-native-web) iki bağımsız tarayıcı bağlamı + admin, ekran görüntülü | GEÇTİ — `docs/reports/evidence/` |
-| Native iOS/Android | **DOĞRULANMADI** (bu ortamda Xcode/Android SDK yok) |
-| Uzak CI (`.github/workflows/ci.yml`) | Yazıldı, **çalıştırılmadı** |
-| Gerçek Supabase Auth (GoTrue) ile giriş | GEÇTİ (K02 testi + demolar) |
+| Birim (28) + gerçek PostgreSQL entegrasyon (68) testleri | DOĞRULANDI — `pnpm --filter @merak/api test`, 96/96 |
+| Uzak CI (`.github/workflows/ci.yml`) | DOĞRULANDI — run 1–3 success (son: `2618234`) |
+| Temiz klondan kurulum (aynı Linux makinesi) | DOĞRULANDI — 16/16 adım, 96/96 test |
+| Gerçek GoTrue ile kayıt / giriş / yenileme / çıkış | DOĞRULANDI — `scripts/smoke/auth-flow.mjs` 12/12 |
+| API/WS iki kullanıcılı demo | DOĞRULANDI — `pnpm demo:two-users` |
+| Web (react-native-web), iki bağımsız tarayıcı bağlamı + admin | DOĞRULANDI — `pnpm --filter @merak/api demo:web`, `docs/reports/evidence/` |
+| Native iOS/Android, macOS kurulumu, Supabase CLI yolu, barındırılan JWKS | **DOĞRULANMADI** |
 
 ## Açık engeller / bilinen sorunlar
 
-- Native çalıştırma doğrulanmadı; `expo-dev-client` yolu hazır ama derlenmedi (bkz. README “Native”).
-- `.github/workflows/ci.yml` henüz bir GitHub Actions koşusu görmedi.
-- Kaynak Master Brief yüklenmedi (`docs/product/MASTER_BRIEF.md`).
-- Web’de pasif sekme ekranları DOM’da kalır (react-navigation davranışı); otomasyon locator’ları aktif ekrana göre kapsamlandı. Kullanıcı etkisi yok.
-- Reveal yayını üye başına kişiye özel emit; ölçek M1 konusu.
+- Native çalıştırma doğrulanmadı (kurucunun Mac’i için komutlar: kapanış raporu §8).
+- Mobil kenar yolları (yeni token ile yeniden bağlanma, geç kabulde resync) için otomatik test yok.
+- Son sorunun cevabı tamamlanmadan sonra işlenirse `SESSION_COMPLETED` alır (bilinçli sınır).
+- Seed kartı editörce düzenlenirse “örnek test içeriği” etiketi düşer.
+- Açık ürün kararları A-1 … A-7 (`docs/product/DECISIONS.md` §3).
 
 ## Yerelde devam etmek için
 

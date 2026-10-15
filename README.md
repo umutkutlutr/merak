@@ -4,7 +4,7 @@ Türkiye’de başlayacak, eğlenerek bilgi ve kültür kazandıran mobil platfo
 
 > “Merak” çalışma adıdır (kurucu adlandırmayı devretti); marka/tescil denetimi yapılmadı. M0 yalnızca ödülsüz yerel testtir.
 
-Belgeler: `docs/product/DECISIONS.md` · `docs/product/ROADMAP.md` · `docs/architecture/ARCHITECTURE.md` · `docs/contracts/API_AND_EVENTS.md` · `docs/reports/M0_DELIVERY_REPORT.md` · `docs/PROJECT_STATE.md`
+Belgeler: `docs/reports/M0_CLOSEOUT_REPORT.md` (güncel durum) · `docs/product/MASTER_BRIEF.md` (özgün kapsam) · `docs/product/DECISIONS.md` · `docs/product/ROADMAP.md` · `docs/architecture/ARCHITECTURE.md` · `docs/contracts/API_AND_EVENTS.md` · `docs/reports/M0_DELIVERY_REPORT.md` · `docs/design/CLAUDE_DESIGN_PROMPT.md` · `docs/PROJECT_STATE.md`
 
 ## Yapı
 
@@ -23,8 +23,8 @@ docs/               ürün, mimari, sözleşme, rapor
 - Node **22.22.0** (`.node-version`), pnpm 10 (`corepack enable` yeterli)
 - PostgreSQL 16 ikilileri (`initdb`, `pg_ctl`, `psql`) — macOS: `brew install postgresql@16`; Ubuntu: `apt install postgresql-16`
 - Supabase Auth için **iki seçenek**:
-  1. **Docker’sız (bu teslimde kullanılan):** Go ≥ 1.24 kurulu olsun; `pnpm stack:init` GoTrue’yu kaynaktan derler (`.local/bin/gotrue`, ilk seferde birkaç dakika).
-  2. **Supabase CLI + Docker:** `supabase start` ile çalışan Auth’u kullan; `.env` dosyalarında `SUPABASE_AUTH_URL=http://127.0.0.1:54321/auth/v1`, `AUTH_JWT_ISSUER` aynı değer, `SUPABASE_JWT_SECRET` = `supabase status` çıktısındaki JWT secret, `DATABASE_*` = Supabase’in Postgres’i (54322). `app` şemasını ve `app_api` rolünü `scripts/local-stack/init.sh` içindeki SQL ile oluştur.
+  1. **Docker’sız (bu teslimde kullanılan ve temiz kurulumla doğrulanan):** Go ≥ 1.21 kurulu olsun. `pnpm stack:init`, GoTrue v2.197.0’ı resmi kaynaktan derler (`.local/bin/gotrue`, sabit commit `4eee58f…` doğrulanır, ilk seferde birkaç dakika). Kaynak `go 1.27.0` ister; `GOTOOLCHAIN=auto` bunu kendisi indirir. macOS’ta `brew install postgresql@16` keg-only’dir: `export PATH="$(brew --prefix postgresql@16)/bin:$PATH"`.
+  2. **Supabase CLI + Docker (tarif; bu teslimde test edilmedi):** `supabase start` ile çalışan Auth’u kullan; `.env` dosyalarında `SUPABASE_AUTH_URL=http://127.0.0.1:54321/auth/v1`, `AUTH_JWT_ISSUER` aynı değer, `SUPABASE_JWT_SECRET` = `supabase status` çıktısındaki JWT secret, `DATABASE_*` = Supabase’in Postgres’i (54322). `app` şemasını ve `app_api` rolünü `scripts/local-stack/init.sh` içindeki SQL ile oluştur.
 
 ## Temiz kurulum (kopyala-yapıştır)
 
@@ -39,7 +39,7 @@ pnpm db:migrate                      # app şeması migration'ları (app_api rol
 pnpm db:seed                         # örnek test içeriği + yerel test hesapları (idempotent)
 ```
 
-Yerel test hesapları (şifre `Merak-Local-123`): `admin@merak.local` (admin), `editor@merak.local` (editör), `ayse@merak.local`, `mehmet@merak.local` (üye). Seed hesapları üretime taşınamaz; seed `NODE_ENV=production`’da çalışmayı reddeder.
+Yerel test hesapları (şifre `Merak-Local-123`): `admin@merak.local` (admin), `editor@merak.local` (editör), `ayse@merak.local`, `mehmet@merak.local` (üye). Seed hesapları üretime taşınamaz: seed `NODE_ENV=production`’da çalışmayı reddeder; Auth sunucusu bu makinede değilse `SEED_PASSWORD` verilmeden personel hesabı açmaz. Editör ve admin hesapları yarışmaya oyuncu olarak katılamaz.
 
 ## Çalıştırma
 
@@ -60,11 +60,11 @@ pnpm dev:mobile:web   # doğrudan web önizleme http://localhost:8081
 
 ### Native (iOS/Android)
 
-Development build yolu hazır (`expo-dev-client`): `cd apps/mobile && npx expo run:ios` veya `npx expo run:android`. **Bu teslimde native çalıştırma doğrulanmadı** (ortamda Xcode/Android SDK yok); web önizleme native doğrulaması sayılmaz.
+Development build yolu hazır (`expo-dev-client`): `cd apps/mobile && npx expo run:ios` veya `npx expo run:android`. **Bu teslimde native çalıştırma doğrulanmadı** (ortamda Xcode/Android SDK yok); web önizleme native doğrulaması sayılmaz. Kurucunun Mac’i için adım adım komutlar ve beklenen akış: `docs/reports/M0_CLOSEOUT_REPORT.md` §8.
 
 ## Demo (kurucu için, 3 dakika)
 
-1. Admin: `http://localhost:5173` → `editor@merak.local` ile giriş → **Sorular** → 5 soruyu seç → “Seçilileri test-onayla + yayınla” (bu bir TEST onayıdır; denetim kaydına böyle düşer).
+1. Admin: `http://localhost:5173` → `editor@merak.local` ile giriş → **Sorular** → 5 soruyu seç → “Seçilileri test-onayla + yayınla”. Bu bir TEST onayıdır: `approval_kind = automated_test` olarak kaydedilir ve admin ekranında kırmızı “TEST ONAYI” olarak görünür. Tek tek “Onayla” ise editör onayıdır.
 2. Admin: `admin@merak.local` → **Oturumlar** → başlangıç 2–3 dk sonrası, 5 yayınlanmış soru → **Planla**.
 3. İki tarayıcı/cihazda (`ayse`, `mehmet`) **Yarış** → **Katıl** → lobi → 5 soru → sonuç → “Kartı aç”.
 4. Keşfet → kart → **Tamamladım** (XP bir kez) → Profil’de XP ve kaydettiklerin.
@@ -73,7 +73,8 @@ Otomatik demolar:
 
 ```bash
 pnpm demo:two-users                                   # API/WS: editör onayı → planlama → 2 kullanıcı → sonuç (API çalışır olmalı)
-pnpm --filter @merak/api exec tsx scripts/demo-web-screens.ts   # Expo web + admin, 2 tarayıcı bağlamı, ekran görüntüleri docs/reports/evidence/
+pnpm --filter @merak/api demo:web                     # Expo web (:8081) + admin (:5173) açık olmalı; 2 tarayıcı bağlamı, ekran görüntüleri docs/reports/evidence/
+node scripts/smoke/auth-flow.mjs                      # gerçek GoTrue: kayıt, giriş, yenileme, çıkış + API ret kontrolleri (token basmaz)
 ```
 
 ## Test
@@ -85,7 +86,7 @@ pnpm --filter @merak/api test:integration
 pnpm lint && pnpm typecheck
 ```
 
-Entegrasyon testleri `DATABASE_ADMIN_URL` (superuser) ile `merak_test` veritabanını her dosyada sıfırlar ve migration’ları `app_api` rolüyle uygular. GoTrue erişilebilirse gerçek giriş de test edilir; değilse o test uyarı basarak atlanır.
+Entegrasyon testleri `DATABASE_ADMIN_URL` (superuser) ile `merak_test` veritabanını her dosyada sıfırlar ve migration’ları `app_api` rolüyle uygular. GoTrue erişilebilirse gerçek giriş de test edilir; değilse o test uyarı basarak atlanır (CI’da atlanır). GitHub Actions (`.github/workflows/ci.yml`) her push’ta lint, typecheck, testler ve build’i çalıştırır; son koşular yeşil (kapanış raporu §9).
 
 ## Yerel stack komutları
 

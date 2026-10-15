@@ -2,6 +2,15 @@
 
 Tarih: 2026-10-15 · Dal: `claude/wonderful-johnson-25mox5` · Ortam: Claude Code bulut konteyneri (Ubuntu 24.04, Node 22.22.0, PostgreSQL 16, Docker daemon yok, Xcode/Android SDK yok)
 
+> **Kapanış notu (2026-10-15):** Bu rapor ilk teslimi (`72afaa3`) anlatır ve tarihsel kayıt olarak bırakıldı. Güncel durum, düzeltilen iddialar ve kapanışta bulunan 15 hata için `docs/reports/M0_CLOSEOUT_REPORT.md` esastır. Özetle düzeltilenler:
+> - Test sayısı teslim kodunda (`2618234`) 96’dır (28 birim + 68 entegrasyon).
+> - CI üç kez uzakta koştu ve yeşil geçti.
+> - Özgün Master Brief yerleştirildi.
+> - 20 ekran görüntüsü vardır, 21 değil; profil görüntüsü sonradan düzeltildi.
+> - §5’teki “23505 yeniden deneme” yolu API’den tetiklenemez ve testi yoktur.
+> - K-9 bir çalışma adıdır, kesin karar değildir.
+> - Açık karar sayısı 7’dir (A-7 eklendi).
+
 Kısaltmalar: **UYGULANDI** = kod mevcut ve çalışıyor; **DOĞRULANDI** = otomatik test veya kaydedilmiş demo ile kanıtlandı; **DOĞRULANMADI** = test edilemedi.
 
 ## 1. Teslim özeti — gerçekten çalışan akışlar
