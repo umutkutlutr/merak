@@ -1,0 +1,8 @@
+node_modules
+dist
+build
+.expo
+.local
+pnpm-lock.yaml
+apps/api/drizzle/meta
+docs/reports/evidence

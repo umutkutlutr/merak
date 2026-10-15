@@ -1,0 +1,34 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# builds
+dist/
+build/
+.expo/
+.expo-shared/
+web-build/
+*.tsbuildinfo
+apps/mobile/ios/
+apps/mobile/android/
+
+# local stack (postgres data, gotrue binary/source, logs)
+.local/
+*.log
+
+# env
+.env
+.env.*
+!.env.example
+
+# test & demo artifacts
+coverage/
+playwright-report/
+test-results/
+docs/reports/evidence/*.tmp
+
+# os / editors
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json

@@ -1,0 +1,283 @@
+/**
+ * ÖRNEK TEST İÇERİĞİ — seed data for local runs only.
+ * productionMethod = 'seed_sample', sourceVerified = false: no editor has checked these sources.
+ * Questions are loaded as DRAFT and must pass the review gate before they can be scheduled.
+ */
+import type { AdminContentInput, AdminQuestionInput } from '@merak/contracts';
+
+export const SEED_TOPICS = [
+  { slug: 'sanat', name: 'Sanat ve Mimari', sortOrder: 1 },
+  { slug: 'tarih', name: 'Tarih', sortOrder: 2 },
+  { slug: 'bilim', name: 'Bilim ve Doğa', sortOrder: 3 },
+  { slug: 'edebiyat', name: 'Edebiyat', sortOrder: 4 },
+  { slug: 'dunya', name: 'Dünya ve Coğrafya', sortOrder: 5 },
+] as const;
+
+export type SeedTopicSlug = (typeof SEED_TOPICS)[number]['slug'];
+
+type SeedContent = Omit<AdminContentInput, 'topicId'> & { topic: SeedTopicSlug; slug: string };
+
+const card = (
+  slug: string,
+  topic: SeedTopicSlug,
+  title: string,
+  summary: string,
+  body: string,
+  sourceUrl: string,
+  sourceTitle: string,
+  readingMinutes = 2,
+): SeedContent => ({
+  slug,
+  kind: 'card',
+  topic,
+  title,
+  summary,
+  body,
+  readingMinutes,
+  sourceUrl,
+  sourceTitle,
+  sourceVerified: false,
+  language: 'tr',
+  productionMethod: 'seed_sample',
+});
+
+export const SEED_CARDS: SeedContent[] = [
+  card(
+    'ayasofyanin-kubbesi',
+    'sanat',
+    'Ayasofya’nın kubbesi neden bu kadar önemli?',
+    'Altıncı yüzyılda inşa edilen kubbe, mühendislik tarihinin dönüm noktalarından biri.',
+    'Ayasofya, Doğu Roma İmparatoru I. Justinianus döneminde, 532–537 yılları arasında inşa edildi. Mimarları Trallesli Anthemios ve Miletoslu İsidoros’tu. Yaklaşık 31 metre çapındaki ana kubbe, dört büyük kemer ve pandantifler üzerine oturur; bu çözüm, kare bir plan üzerine daire bir kubbe yerleştirme sorununa verilmiş en etkili erken yanıtlardan biridir.\n\nİlk kubbe 558 depreminde çöktü ve Genç İsidoros tarafından daha dik bir kavisle yeniden yapıldı. Yapı yüzyıllar boyunca kilise, cami ve müze olarak kullanıldı; bugün de İstanbul siluetinin en tanınan ögelerinden biridir.',
+    'https://tr.wikipedia.org/wiki/Ayasofya',
+    'Vikipedi — Ayasofya',
+  ),
+  card(
+    'mimar-sinan-ve-selimiye',
+    'sanat',
+    'Mimar Sinan’ın “ustalık eserim” dediği yapı',
+    'Edirne’deki Selimiye Camii, klasik Osmanlı mimarisinin zirvesi sayılır.',
+    'Selimiye Camii, II. Selim’in isteğiyle 1568–1575 yılları arasında Edirne’de inşa edildi. Mimar Sinan, kendi anlatımına dayanan kaynaklarda Şehzade Camii’ni çıraklık, Süleymaniye’yi kalfalık ve Selimiye’yi ustalık eseri olarak tanımlar.\n\nYaklaşık 31 metre çapındaki kubbe sekiz büyük ayak üzerine oturur; böylece iç mekân neredeyse kesintisiz tek bir hacim olarak algılanır. Dört ince minaresi ve bütünleşik külliyesiyle Selimiye, 2011 yılında UNESCO Dünya Mirası Listesi’ne alındı.',
+    'https://whc.unesco.org/en/list/1366/',
+    'UNESCO World Heritage — Selimiye Mosque and its Social Complex',
+  ),
+  card(
+    'kaplumbaga-terbiyecisi',
+    'sanat',
+    'Kaplumbağa Terbiyecisi’nin hikâyesi',
+    'Osman Hamdi Bey’in en çok konuşulan tablosu hem ironi hem de öz eleştiri taşır.',
+    'Osman Hamdi Bey (1842–1910), ressamlığın yanı sıra İstanbul Arkeoloji Müzeleri’nin ve Sanayi-i Nefise Mektebi’nin (bugünkü Mimar Sinan Güzel Sanatlar Üniversitesi) kurucusudur. 1906 tarihli “Kaplumbağa Terbiyecisi” adlı tablosu, elinde ney tutan bir dervişin yerdeki kaplumbağaları “eğitmeye” çalışmasını gösterir.\n\nTablo, dönemin reform çabalarının yavaşlığına dair bir yorum olarak okunur; sanatçının kendi yüzünü dervişe verdiği düşünülür. Eserin bir versiyonu bugün İstanbul’daki Pera Müzesi’nde sergilenmektedir.',
+    'https://tr.wikipedia.org/wiki/Kaplumba%C4%9Fa_Terbiyecisi',
+    'Vikipedi — Kaplumbağa Terbiyecisi',
+  ),
+  card(
+    'gobekli-tepe',
+    'tarih',
+    'Göbekli Tepe: tapınak mı, buluşma yeri mi?',
+    'Şanlıurfa’daki bu kazı alanı, yerleşik hayat ve inanç hakkındaki varsayımları değiştirdi.',
+    'Göbekli Tepe, Şanlıurfa’nın yaklaşık 15 km kuzeydoğusunda yer alır. MÖ 10. binyıla, yani tarımın ve kalıcı köylerin yaygınlaşmasından önceki döneme tarihlenen anıtsal yapılar içerir. T biçimli dikilitaşlar üzerinde tilki, yaban domuzu, yılan ve kuş gibi hayvan kabartmaları bulunur.\n\nAlman Arkeoloji Enstitüsü’nden Klaus Schmidt’in 1995’te başlattığı kazılar, avcı-toplayıcı toplulukların da büyük ortak yapılar inşa edebildiğini gösterdi. Göbekli Tepe 2018’de UNESCO Dünya Mirası Listesi’ne girdi.',
+    'https://whc.unesco.org/en/list/1572/',
+    'UNESCO World Heritage — Göbekli Tepe',
+    3,
+  ),
+  card(
+    'kades-antlasmasi',
+    'tarih',
+    'Bilinen en eski yazılı barış antlaşması',
+    'Hititler ile Mısır arasındaki Kadeş Antlaşması, diplomasinin köklerini gösterir.',
+    'Kadeş Antlaşması, Hitit Kralı III. Hattuşili ile Mısır Firavunu II. Ramses arasında, MÖ 1259 civarında yapıldı. İki devletin Suriye üzerindeki rekabeti, MÖ 1274 dolaylarındaki Kadeş Savaşı’ndan yıllar sonra bu antlaşmayla sona erdi.\n\nMetnin Hitit nüshası çivi yazılı kil tabletler hâlinde Boğazköy’de (Hattuşa) bulundu ve İstanbul Arkeoloji Müzeleri’nde sergilenmektedir. Antlaşmanın büyütülmüş bir kopyası, barışın simgesi olarak Birleşmiş Milletler’in New York’taki merkezinde yer alır.',
+    'https://tr.wikipedia.org/wiki/Kade%C5%9F_Antla%C5%9Fmas%C4%B1',
+    'Vikipedi — Kadeş Antlaşması',
+  ),
+  card(
+    'istanbulun-adlari',
+    'tarih',
+    'Byzantion’dan İstanbul’a: bir şehrin adları',
+    'Aynı şehir, 2.600 yılda birden fazla adla anıldı.',
+    'Şehir, MÖ 7. yüzyılda Megaralı kolonistlerce Byzantion adıyla kuruldu. 330 yılında İmparator Konstantin burayı Roma İmparatorluğu’nun yeni başkenti ilan etti ve şehir Konstantinopolis olarak anılmaya başladı.\n\n“İstanbul” adının Yunanca “eis tin polin” (şehre doğru) ifadesinden türediği görüşü yaygındır. 1930’da Türkiye, yabancı ülkelerden gelen postada da yalnızca İstanbul adının kullanılmasını istedi; böylece ad uluslararası yazışmalarda da resmîleşti.',
+    'https://tr.wikipedia.org/wiki/%C4%B0stanbul%27un_adlar%C4%B1',
+    'Vikipedi — İstanbul’un adları',
+  ),
+  card(
+    'isik-hizi',
+    'bilim',
+    'Işık hızı neden “tam” bir sayı?',
+    'Boşluktaki ışık hızı ölçülmez, tanımlanır: saniyede 299.792.458 metre.',
+    '1983’ten bu yana metre, ışığın boşlukta 1/299.792.458 saniyede aldığı yol olarak tanımlanır. Bu yüzden ışık hızı artık ölçüm belirsizliği taşıyan bir sayı değil, tanım gereği tam bir sabittir: c = 299.792.458 m/s.\n\nGünlük ölçekte bu hız sonsuz gibi görünse de gökbilimde çok belirleyicidir: Güneş’ten çıkan ışık Dünya’ya yaklaşık 8 dakika 20 saniyede ulaşır. Gece gökyüzüne baktığımızda aslında yıldızların geçmişini görürüz.',
+    'https://www.bipm.org/en/measurement-units/si-base-units',
+    'BIPM — SI base units',
+  ),
+  card(
+    'marie-curie',
+    'bilim',
+    'Marie Curie’nin iki Nobel’i',
+    'İki farklı bilim dalında Nobel Ödülü alan ilk ve tek kişi.',
+    'Marie Skłodowska-Curie, 1903’te eşi Pierre Curie ve Henri Becquerel ile Fizik Nobel’ini radyoaktivite araştırmaları için paylaştı. 1911’de ise polonyum ve radyum elementlerini keşfi ve radyumu saf hâlde elde etmesi nedeniyle Kimya Nobel’ini tek başına aldı.\n\nCurie, Paris Üniversitesi’nde ders veren ilk kadın profesördü. Birinci Dünya Savaşı’nda cepheye taşınabilir röntgen üniteleri götürülmesine öncülük etti. Uzun süre radyoaktif maddelerle çalışması sağlığını etkiledi; not defterleri bugün hâlâ korumalı kutularda saklanır.',
+    'https://www.nobelprize.org/prizes/physics/1903/marie-curie/facts/',
+    'NobelPrize.org — Marie Curie, Facts',
+  ),
+  card(
+    'dna-cift-sarmal',
+    'bilim',
+    'DNA’nın çift sarmalı nasıl bulundu?',
+    '1953’te yayımlanan bir sayfalık makale, biyolojinin yönünü değiştirdi.',
+    'James Watson ve Francis Crick, DNA’nın çift sarmal yapısını öneren makalelerini 25 Nisan 1953’te Nature dergisinde yayımladı. Model, Rosalind Franklin ve Maurice Wilkins’in King’s College London’da elde ettiği X-ışını kırınım verilerine dayanıyordu; Franklin’in “Fotoğraf 51”i belirleyici ipuçlarından biriydi.\n\nÇift sarmal, bazların eşleşme kuralıyla (A–T, G–C) kalıtsal bilginin nasıl kopyalanabileceğini de açıklıyordu. Watson, Crick ve Wilkins 1962’de Nobel Ödülü aldı; Franklin 1958’de hayatını kaybetmişti.',
+    'https://www.nature.com/articles/171737a0',
+    'Nature (1953) — Molecular Structure of Nucleic Acids',
+  ),
+  card(
+    'gazel-nedir',
+    'edebiyat',
+    'Gazelin yapısı: matla, makta, mahlas',
+    'Divan şiirinin en yaygın nazım biçimini üç terimle okumak.',
+    'Gazel, beyitlerden oluşan ve genellikle 5 ile 15 beyit arasında yazılan bir nazım biçimidir. İlk beyit kendi içinde kafiyelidir ve “matla” adını alır; sonraki beyitlerin ikinci dizeleri bu kafiyeyi sürdürür.\n\nSon beyit “makta” olarak adlandırılır ve şair burada mahlasını, yani şiirde kullandığı adını söyler. En güzel beyit “beytü’l-gazel” diye anılır. Fuzûlî, Bâkî ve Nedîm gazelin en bilinen ustaları arasındadır.',
+    'https://tr.wikipedia.org/wiki/Gazel',
+    'Vikipedi — Gazel',
+  ),
+  card(
+    'kurk-mantolu-madonna',
+    'edebiyat',
+    'Kürk Mantolu Madonna neden hâlâ okunuyor?',
+    'Sabahattin Ali’nin 1943 tarihli romanı, onlarca yıl sonra yeniden en çok okunanlar arasına girdi.',
+    'Kürk Mantolu Madonna, Sabahattin Ali’nin 1943’te kitap olarak yayımlanan romanıdır. Anlatı, Ankara’da silik bir memur olarak tanıdığımız Raif Efendi’nin gençliğinde Berlin’de ressam Maria Puder ile yaşadığı ilişkiyi, ölümünden sonra bulunan defterinden aktarır.\n\nRoman yayımlandığı dönemde fazla ilgi görmedi; 2000’li yıllarda yeniden keşfedildi ve uzun süre Türkiye’de en çok satan kitaplar arasında yer aldı. İngilizce çevirisi 2016’da Penguin Classics’ten çıktı.',
+    'https://tr.wikipedia.org/wiki/K%C3%BCrk_Mantolu_Madonna',
+    'Vikipedi — Kürk Mantolu Madonna',
+  ),
+  card(
+    'kapadokya-peribacalari',
+    'dunya',
+    'Peribacaları nasıl oluştu?',
+    'Kapadokya’nın manzarası milyonlarca yıllık volkanik külün eseri.',
+    'Kapadokya’daki peribacaları, Erciyes, Hasan Dağı ve Güllüdağ gibi volkanların püskürttüğü külün sıkışmasıyla oluşan yumuşak tüf katmanlarının, üstteki daha sert bazalt parçaları tarafından korunarak aşınmasıyla ortaya çıktı. Rüzgâr ve su yumuşak tüfü oyarken sert başlıklar altındaki sütunlar ayakta kaldı.\n\nİnsanlar bu yumuşak kayaya evler, kiliseler ve yeraltı şehirleri oydu. Göreme Milli Parkı ve Kapadokya Kaya Siteleri 1985’te UNESCO Dünya Mirası Listesi’ne alındı.',
+    'https://whc.unesco.org/en/list/357/',
+    'UNESCO World Heritage — Göreme National Park and the Rock Sites of Cappadocia',
+  ),
+  card(
+    'leylek-gocu-bogaz',
+    'dunya',
+    'Leylekler neden İstanbul Boğazı’ndan geçer?',
+    'Her sonbahar yüz binlerce leylek ve yırtıcı kuş Boğaz üzerinden Afrika’ya süzülür.',
+    'Leylekler ve kartal, şahin gibi büyük yırtıcı kuşlar uzun mesafeleri kanat çırparak değil, yükselen sıcak hava akımlarında (termiklerde) süzülerek kat eder. Termikler kara üzerinde oluştuğu için bu kuşlar geniş denizleri aşmaktan kaçınır ve İstanbul Boğazı gibi dar geçitleri tercih eder.\n\nBu nedenle Boğaz, Avrupa ile Afrika arasındaki en önemli göç darboğazlarından biridir. Sonbaharda Çamlıca ve Sarıyer tepelerinden yapılan sayımlarda tek bir mevsimde yüz binlerce leylek kaydedilir.',
+    'https://tr.wikipedia.org/wiki/Ku%C5%9F_g%C3%B6%C3%A7%C3%BC',
+    'Vikipedi — Kuş göçü',
+  ),
+];
+
+export const SEED_RADAR_PICKS: SeedContent[] = [
+  {
+    slug: 'radar-tutunamayanlar',
+    kind: 'radar_pick',
+    topic: 'edebiyat',
+    title: 'Tutunamayanlar',
+    summary: 'Oğuz Atay, 1971–72. Türk romanında modernist kırılma.',
+    body: 'Oğuz Atay’ın ilk romanı; Selim Işık’ın intiharının ardından arkadaşı Turgut Özben’in onun izini sürmesini anlatır. İroni, iç monolog, ansiklopedi parodileri ve uzun şiirsel bölümlerle alışılmış roman biçimini kırar.',
+    whyRecommended: 'Zorlayıcı ama ödüllendirici: ciddiyet ile alayı aynı anda taşıyan sesi, Türkçede benzersizdir. Sabırlı okuyucu için.',
+    mediaType: 'book',
+    creator: 'Oğuz Atay',
+    year: 1972,
+    sourceUrl: 'https://tr.wikipedia.org/wiki/Tutunamayanlar',
+    sourceTitle: 'Vikipedi — Tutunamayanlar',
+    sourceVerified: false,
+    language: 'tr',
+    productionMethod: 'seed_sample',
+  },
+  {
+    slug: 'radar-sapiens',
+    kind: 'radar_pick',
+    topic: 'tarih',
+    title: 'Sapiens: Hayvanlardan Tanrılara',
+    summary: 'Yuval Noah Harari, 2011. İnsanlık tarihine tek ciltlik geniş açı.',
+    body: 'Bilişsel devrim, tarım devrimi ve bilim devrimi çerçevesinde Homo sapiens’in yükselişini anlatır. Ortak kurgular (para, din, ulus) üzerine yaptığı vurgu kitabın omurgasıdır.',
+    whyRecommended: 'Büyük resmi görmek isteyenler için akıcı bir giriş. Bazı tezleri uzmanlarca tartışmalı; sorgulayarak okumaya uygun.',
+    mediaType: 'book',
+    creator: 'Yuval Noah Harari',
+    year: 2011,
+    sourceUrl: 'https://tr.wikipedia.org/wiki/Hayvanlardan_Tanr%C4%B1lara:_Sapiens',
+    sourceTitle: 'Vikipedi — Sapiens',
+    sourceVerified: false,
+    language: 'tr',
+    productionMethod: 'seed_sample',
+  },
+  {
+    slug: 'radar-bir-zamanlar-anadoluda',
+    kind: 'radar_pick',
+    topic: 'sanat',
+    title: 'Bir Zamanlar Anadolu’da',
+    summary: 'Nuri Bilge Ceylan, 2011. Cannes Büyük Ödül.',
+    body: 'Bir gece boyunca bozkırda ceset arayan savcı, doktor ve jandarma ekibini izleyen film; olay örgüsünden çok bekleyiş, konuşmalar ve ışıkla ilerler. 2011 Cannes Film Festivali’nde Büyük Ödül’ü paylaştı.',
+    whyRecommended: 'Türkiye taşrasını hem tanıdık hem yabancı gösteren bir bakış. Yavaş sinemaya açık olanlar için.',
+    mediaType: 'film',
+    creator: 'Nuri Bilge Ceylan',
+    year: 2011,
+    sourceUrl: 'https://tr.wikipedia.org/wiki/Bir_Zamanlar_Anadolu%27da',
+    sourceTitle: 'Vikipedi — Bir Zamanlar Anadolu’da',
+    sourceVerified: false,
+    language: 'tr',
+    productionMethod: 'seed_sample',
+  },
+  {
+    slug: 'radar-ruhlarin-kacisi',
+    kind: 'radar_pick',
+    topic: 'sanat',
+    title: 'Ruhların Kaçışı (Spirited Away)',
+    summary: 'Hayao Miyazaki, 2001. En İyi Animasyon Oscar’ı.',
+    body: 'Ailesiyle taşınırken ruhlar dünyasına kapılan Chihiro’nun hikâyesi. Japon folkloru, çocukluk ve emek temalarını el çizimi animasyonla birleştirir; 2003’te En İyi Animasyon Film Oscar’ını kazandı.',
+    whyRecommended: 'Yetişkinlerin de kendini bulacağı bir büyüme hikâyesi; görsel dilinin zenginliği her yaşa hitap eder.',
+    mediaType: 'film',
+    creator: 'Hayao Miyazaki',
+    year: 2001,
+    sourceUrl: 'https://tr.wikipedia.org/wiki/Ruhlar%C4%B1n_Ka%C3%A7%C4%B1%C5%9F%C4%B1',
+    sourceTitle: 'Vikipedi — Ruhların Kaçışı',
+    sourceVerified: false,
+    language: 'tr',
+    productionMethod: 'seed_sample',
+  },
+];
+
+type SeedQuestion = Omit<AdminQuestionInput, 'topicId' | 'relatedContentItemId'> & {
+  topic: SeedTopicSlug;
+  relatedSlug: string | null;
+};
+
+const q = (
+  topic: SeedTopicSlug,
+  prompt: string,
+  options: [string, string, string, string],
+  correctIndex: 0 | 1 | 2 | 3,
+  explanation: string,
+  sourceUrl: string,
+  sourceTitle: string,
+  relatedSlug: string | null,
+): SeedQuestion => ({
+  topic,
+  prompt,
+  explanation,
+  options: options.map((label, i) => ({ label, isCorrect: i === correctIndex })),
+  sourceUrl,
+  sourceTitle,
+  sourceVerified: false,
+  language: 'tr',
+  productionMethod: 'seed_sample',
+  relatedSlug,
+});
+
+export const SEED_QUESTIONS: SeedQuestion[] = [
+  q('sanat', 'Ayasofya hangi Doğu Roma imparatoru döneminde tamamlandı?', ['I. Justinianus', 'I. Konstantin', 'Theodosius II', 'Herakleios'], 0, 'Ayasofya 532–537 yılları arasında I. Justinianus’un emriyle inşa edildi.', 'https://tr.wikipedia.org/wiki/Ayasofya', 'Vikipedi — Ayasofya', 'ayasofyanin-kubbesi'),
+  q('sanat', 'Mimar Sinan hangi yapıyı “ustalık eserim” olarak tanımlar?', ['Süleymaniye Camii', 'Selimiye Camii', 'Şehzade Camii', 'Mihrimah Sultan Camii'], 1, 'Sinan; Şehzade’yi çıraklık, Süleymaniye’yi kalfalık, Edirne’deki Selimiye’yi ustalık eseri sayar.', 'https://whc.unesco.org/en/list/1366/', 'UNESCO — Selimiye Mosque', 'mimar-sinan-ve-selimiye'),
+  q('sanat', '“Kaplumbağa Terbiyecisi” tablosunun ressamı kimdir?', ['Şeker Ahmed Paşa', 'İbrahim Çallı', 'Osman Hamdi Bey', 'Hoca Ali Rıza'], 2, 'Tablo 1906’da Osman Hamdi Bey tarafından yapıldı; bir versiyonu Pera Müzesi’ndedir.', 'https://tr.wikipedia.org/wiki/Kaplumba%C4%9Fa_Terbiyecisi', 'Vikipedi — Kaplumbağa Terbiyecisi', 'kaplumbaga-terbiyecisi'),
+  q('tarih', 'Göbekli Tepe hangi ilimizde yer alır?', ['Diyarbakır', 'Mardin', 'Gaziantep', 'Şanlıurfa'], 3, 'Göbekli Tepe, Şanlıurfa’nın yaklaşık 15 km kuzeydoğusundadır.', 'https://whc.unesco.org/en/list/1572/', 'UNESCO — Göbekli Tepe', 'gobekli-tepe'),
+  q('tarih', 'Kadeş Antlaşması hangi iki devlet arasında yapılmıştır?', ['Hititler ve Mısır', 'Asurlular ve Babil', 'Urartular ve Persler', 'Lidyalılar ve Frigler'], 0, 'MÖ 1259 civarında Hitit Kralı III. Hattuşili ile Firavun II. Ramses arasında imzalandı.', 'https://tr.wikipedia.org/wiki/Kade%C5%9F_Antla%C5%9Fmas%C4%B1', 'Vikipedi — Kadeş Antlaşması', 'kades-antlasmasi'),
+  q('tarih', 'İstanbul’un MÖ 7. yüzyılda kurulduğu dönemdeki adı neydi?', ['Nikomedia', 'Byzantion', 'Khalkedon', 'Nova Roma'], 1, 'Şehir Megaralı kolonistlerce Byzantion adıyla kuruldu; 330’da Konstantinopolis oldu.', 'https://tr.wikipedia.org/wiki/%C4%B0stanbul%27un_adlar%C4%B1', 'Vikipedi — İstanbul’un adları', 'istanbulun-adlari'),
+  q('bilim', 'Işığın boşluktaki hızı yaklaşık kaç kilometre/saniyedir?', ['30.000 km/s', '3.000.000 km/s', '300.000 km/s', '300 km/s'], 2, 'Tam değer 299.792.458 m/s’dir; yaklaşık 300.000 km/s.', 'https://www.bipm.org/en/measurement-units/si-base-units', 'BIPM — SI base units', 'isik-hizi'),
+  q('bilim', 'İki farklı bilim dalında Nobel Ödülü alan ilk kişi kimdir?', ['Albert Einstein', 'Marie Curie', 'Linus Pauling', 'Niels Bohr'], 1, 'Marie Curie 1903’te Fizik, 1911’de Kimya Nobel’ini aldı.', 'https://www.nobelprize.org/prizes/physics/1903/marie-curie/facts/', 'NobelPrize.org — Marie Curie', 'marie-curie'),
+  q('bilim', 'DNA’nın çift sarmal yapısını öneren makale hangi yıl yayımlandı?', ['1944', '1953', '1962', '1971'], 1, 'Watson ve Crick’in makalesi 25 Nisan 1953’te Nature’da yayımlandı.', 'https://www.nature.com/articles/171737a0', 'Nature (1953)', 'dna-cift-sarmal'),
+  q('edebiyat', 'Gazelde şairin mahlasını söylediği son beyte ne ad verilir?', ['Matla', 'Makta', 'Beytü’l-gazel', 'Mısra-ı berceste'], 1, 'Son beyit “makta”dır; ilk beyit “matla” adını alır.', 'https://tr.wikipedia.org/wiki/Gazel', 'Vikipedi — Gazel', 'gazel-nedir'),
+  q('edebiyat', '“Kürk Mantolu Madonna” romanının yazarı kimdir?', ['Sait Faik Abasıyanık', 'Yaşar Kemal', 'Sabahattin Ali', 'Orhan Kemal'], 2, 'Roman 1943’te Sabahattin Ali tarafından yayımlandı.', 'https://tr.wikipedia.org/wiki/K%C3%BCrk_Mantolu_Madonna', 'Vikipedi — Kürk Mantolu Madonna', 'kurk-mantolu-madonna'),
+  q('dunya', 'Kapadokya’daki peribacaları ağırlıklı olarak hangi kaya türünden oluşur?', ['Kireçtaşı', 'Granit', 'Volkanik tüf', 'Mermer'], 2, 'Peribacaları, volkanik külün sıkışmasıyla oluşan yumuşak tüfün aşınmasıyla ortaya çıktı.', 'https://whc.unesco.org/en/list/357/', 'UNESCO — Göreme National Park', 'kapadokya-peribacalari'),
+];
+
+export const SEED_USERS = [
+  { email: 'admin@merak.local', username: 'merak_admin', displayName: 'Merak Admin', role: 'admin' as const },
+  { email: 'editor@merak.local', username: 'merak_editor', displayName: 'Merak Editör', role: 'editor' as const },
+  { email: 'ayse@merak.local', username: 'ayse', displayName: 'Ayşe', role: 'member' as const },
+  { email: 'mehmet@merak.local', username: 'mehmet', displayName: 'Mehmet', role: 'member' as const },
+];

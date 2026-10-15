@@ -1,0 +1,43 @@
+{
+  "name": "merak",
+  "version": "0.0.1-m0",
+  "private": true,
+  "description": "Merak — hibrit kültür, mikro öğrenme ve sosyal rekabet platformu (M0 monorepo)",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22.12 <23",
+    "pnpm": ">=10"
+  },
+  "scripts": {
+    "stack:init": "bash scripts/local-stack/init.sh",
+    "stack:start": "bash scripts/local-stack/start.sh",
+    "stack:stop": "bash scripts/local-stack/stop.sh",
+    "stack:status": "bash scripts/local-stack/status.sh",
+    "stack:reset": "bash scripts/local-stack/reset.sh",
+    "db:migrate": "pnpm --filter @merak/api db:migrate",
+    "db:seed": "pnpm --filter @merak/api db:seed",
+    "dev:api": "pnpm --filter @merak/api dev",
+    "dev:admin": "pnpm --filter @merak/admin dev",
+    "dev:mobile": "pnpm --filter @merak/mobile start",
+    "dev:mobile:web": "pnpm --filter @merak/mobile web",
+    "build:contracts": "pnpm --filter @merak/contracts build",
+    "build": "pnpm -r --if-present build",
+    "lint": "pnpm -r --if-present lint",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "pnpm -r --if-present test",
+    "test:api": "pnpm --filter @merak/api test",
+    "demo:two-users": "pnpm --filter @merak/api demo:two-users",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,json,md,yml,yaml}\""
+  },
+  "devDependencies": {
+    "prettier": "3.9.10",
+    "typescript": "5.9.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@swc/core",
+      "esbuild"
+    ]
+  }
+}

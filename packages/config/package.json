@@ -1,0 +1,7 @@
+{
+  "name": "@merak/config",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Shared tooling presets (tsconfig, eslint). No runtime code.",
+  "files": ["tsconfig.*.json", "eslint.base.js"]
+}
